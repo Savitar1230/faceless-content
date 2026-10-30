@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><title>Rumi Longform</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root { --paper:#F2EDE4; --ink:#111; --accent:#D7263D; --line:#d8d1c4; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.45 system-ui, sans-serif; }
+header { background:var(--ink); color:var(--paper); padding:14px 20px; font-size:20px; font-weight:700; }
+main { max-width:420px; margin:0 auto; padding:40px 16px; }
+form { background:#fff; border:1px solid var(--line); padding:20px; }
+label { display:block; margin-bottom:6px; font-weight:600; }
+input { font:inherit; padding:7px; border:1px solid #bbb; width:100%; margin-bottom:14px; }
+button { background:var(--accent); color:#fff; border:0; padding:7px 14px; font:inherit; cursor:pointer; }
+.error { color:var(--accent); font-weight:600; }
+small { color:#666; }
+</style></head>
+<body>
+<header>Rumi Longform</header>
+<main>
+  <form method="post">
+    <label for="key">Your key</label>
+    <input id="key" name="key" type="password" autocomplete="off" required autofocus>
+    {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+    <button>Sign in</button>
+  </form>
+  <p><small>Your admin gives you a key. You do not need a Flow or Muse login to use this app.</small></p>
+</main>
+</body></html>

@@ -17,6 +17,12 @@ npm install
 Put `kokoro-v1.0.onnx` and `voices-v1.0.bin` in `models/` (from the kokoro-onnx releases on GitHub).
 For the free local writer, start Ollama and run `ollama pull qwen2.5:7b`.
 
+## Team
+
+The first start prints your admin key in the black window. Copy it, it is shown once. If you lose it, run `.venv/Scripts/python.exe team.py` on this PC for a new one.
+
+The **Team** tab adds people and makes keys. A key is a login for this app only: it never signs anyone in to Flow or Muse, and only its hash is stored. Teammates see their own videos. The admin sees everything. The assistant key works as `Authorization: Bearer <key>`, and it cannot make keys, remove people or approve scripts.
+
 ## How a video is made
 
 1. **New video:** give a topic and facts. The writer plugin drafts the script and storyboard.
@@ -29,8 +35,8 @@ Accounts in the app are names only. Sign in to Flow and Muse in your browser. Th
 
 ## Files
 
-`app.py` the app · `pipeline.py` the stages · `spec.py` script check · `scenes.py` layouts for 3 sizes ·
+`app.py` the app · `team.py` people and keys · `pipeline.py` the stages · `spec.py` script check · `scenes.py` layouts for 3 sizes ·
 `checks.py` clip and final checks · `plugins/` one folder per tool · `examples/calf.json` a full example ·
 `spike/` the faster skia engine, kept as a backup for slow PCs.
 
-Tests: `.venv/Scripts/python.exe tests/test_tool.py`
+Tests: `.venv/Scripts/python.exe tests/test_tool.py` and `.venv/Scripts/python.exe tests/test_team.py`

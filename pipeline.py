@@ -160,6 +160,8 @@ def pictures(job, spec, waiting, flags):
     for pid, p in pics.items():  # files and images first, because video starts from an image
         if "file" in p:
             path = (ROOT / p["file"]).resolve()
+            # any teammate can write a script, so it may only reach shared pictures, never other files on this PC
+            if (ROOT / "demo").resolve() not in path.parents: raise Blocked(f"picture file must be inside demo/: {p['file']}")
             if not path.exists(): raise Blocked(f"picture file not found: {p['file']}")
             media[pid] = ("video" if path.suffix.lower() in (".mp4", ".mov", ".webm") else "image", str(path))
         elif "image" in p:
@@ -311,7 +313,7 @@ def write_spec(slug, topic, facts, sources, fmt, ratios, writer="ollama_writer",
         if not r["ok"]: raise Blocked(r["error"])
         text = r["text"]
         try:
-            spec = dict(base, **json.loads(text[text.find("{"):text.rfind("}") + 1]))
+            spec = dict(json.loads(text[text.find("{"):text.rfind("}") + 1]), **base)  # base wins, so a writer cannot approve its own script
         except ValueError:
             problems = ["reply was not valid JSON"]
             continue

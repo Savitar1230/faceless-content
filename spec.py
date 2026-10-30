@@ -15,6 +15,8 @@ MAX_GRADE = 9.0  # plain everyday words
 FILLER = ("you know", "i mean", "basically", "kinda", "literally", "actually", "at the end of the day")
 COMMON = {"there", "their", "these", "those", "which", "where", "while", "about", "would", "could", "should", "other"}
 SCENES = {"media", "text", "compare", "number", "fork"}
+RATIOS = ("9x16", "16x9", "3x4")
+NAME = r"[A-Za-z0-9_-]+"  # picture and style names become file names
 
 
 def words(t): return re.findall(r"[a-z0-9']+", t.lower())
@@ -39,11 +41,17 @@ def scene_text(s):
 
 
 def shape(spec):
-    """Specs can come from an AI writer, so the structure is checked before anything reads it."""
+    """Specs can come from any teammate or AI writer, so the structure is checked before anything reads it."""
     bad = []
     pics = spec.get("pictures", {})
     if not isinstance(pics, dict) or not all(isinstance(p, dict) for p in pics.values()):
         bad.append("pictures must be an object of objects")
+    elif not all(re.fullmatch(NAME, x) for x in pics):
+        bad.append("picture names can only use letters, numbers, - and _")
+    if not re.fullmatch(NAME, str(spec.get("style", "news"))): bad.append("style name can only use letters, numbers, - and _")
+    if not isinstance(spec.get("voice", {}), dict): bad.append("voice must be an object")
+    ratios = spec.get("ratios", [])
+    if not isinstance(ratios, list) or not all(r in RATIOS for r in ratios): bad.append(f"sizes must be from {RATIOS}")
     blocks = spec.get("blocks", [])
     if not isinstance(blocks, list): return bad + ["blocks must be a list"]
     for i, b in enumerate(blocks, 1):
@@ -57,6 +65,7 @@ def shape(spec):
         for s in scenes:
             if not isinstance(s.get("pic", ""), str): bad.append(f"block {i}: pic must be a picture id")
             if not isinstance(s.get("dur", 0), (int, float)): bad.append(f"block {i}: dur must be a number")
+            if s.get("type") == "number" and not isinstance(s.get("value"), (int, float)): bad.append(f"block {i}: value must be a number")
     return bad
 
 

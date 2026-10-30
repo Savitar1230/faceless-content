@@ -30,8 +30,10 @@ a.alt { background:#fff; border:1px solid var(--ink); padding:6px 12px; color:va
 <header><b>Rumi Longform</b><nav>
   <button data-tab="videos" class="on">Videos</button>
   <button data-tab="new">New video</button>
-  <button data-tab="plugins">Plugins &amp; accounts</button>
-</nav></header>
+  <button data-tab="plugins" hidden>Plugins &amp; accounts</button>
+  <button data-tab="team" hidden>Team</button>
+</nav><small id="me" style="margin-left:auto;color:var(--paper)"></small>
+<form method="post" action="/logout" style="margin:0"><button class="alt">Sign out</button></form></header>
 <div id="toast" role="status" hidden></div>
 <main>
   <section id="videos"></section>
@@ -52,12 +54,13 @@ a.alt { background:#fff; border:1px solid var(--ink); padding:6px 12px; color:va
     </div>
   </section>
   <section id="plugins" hidden></section>
+  <section id="team" hidden></section>
 </main>
 <script>
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const api = (url, body) => fetch(url, body === undefined ? {} : {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)}).then((r) => r.json());
-let editing = null, lastVideos = "", plugins = [];
+const api = (url, body) => fetch(url, body === undefined ? {} : {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)}).then((r) => { if (r.status === 401) location = "/login"; return r.json(); });
+let editing = null, lastVideos = "", plugins = [], me = {}, newKey = "";
 const say = (msg) => { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(say.t); say.t = setTimeout(() => t.hidden = true, 5000); };
 const siteOf = (name) => (plugins.find((p) => p.name === name) || {}).site;
 
@@ -69,12 +72,12 @@ document.querySelectorAll("nav button").forEach((b) => b.onclick = () => {
 
 function cardHtml(v, c) {
   return `<div class="card"><div class="row"><b class="grow">${esc(c.title)}: ${esc(c.id)}</b>
-    <small>${c.account ? "Use account: " + esc(c.account) : "No account chosen"} · try ${c.try}${c.ratio ? " · " + c.ratio : ""}</small></div>
+    <small>${c.account ? "Use account: " + esc(c.account) : "No account chosen"} · try ${esc(c.try)}${c.ratio ? " · " + esc(c.ratio) : ""}</small></div>
     <pre>${esc(c.prompt)}</pre>${c.start_image ? `<small>Start image: ${esc(c.start_image)}</small><br>` : ""}
     <div class="row"><button class="alt" onclick="navigator.clipboard.writeText(${esc(JSON.stringify(c.prompt))}).then(() => say('Prompt copied'))">Copy prompt</button>
     ${siteOf(c.plugin) ? `<a class="alt" href="${siteOf(c.plugin)}" target="_blank" rel="noopener">Open ${esc(c.title)}</a>` : ""}
     <label class="alt" style="margin:0;font-weight:400;border:1px solid var(--ink);padding:6px 12px;cursor:pointer">Drop the finished file
-      <input type="file" hidden onchange="dropFile('${v.slug}','${esc(c.id)}',this.files[0])"></label></div></div>`;
+      <input type="file" hidden onchange="dropFile('${v.slug}',${esc(JSON.stringify(c.id))},this.files[0])"></label></div></div>`;
 }
 
 async function loadVideos() {
@@ -107,8 +110,8 @@ async function saveSpec(slug) {
   let body; try { body = JSON.parse($("#spec").value); } catch (e) { alert("That is not valid: " + e.message); return; }
   await api(`/api/videos/${slug}/spec`, body); editing = null; loadVideos();
 }
-const approve = (slug) => api(`/api/videos/${slug}/approve`, {}).then(() => { say("Approved. It is in the queue."); loadVideos(); });
-const runVideo = (slug) => api(`/api/videos/${slug}/run`, {}).then(() => { say("Added to the queue."); loadVideos(); });
+const approve = (slug) => api(`/api/videos/${slug}/approve`, {}).then((r) => { say(r.error || "Approved. It is in the queue."); loadVideos(); });
+const runVideo = (slug) => api(`/api/videos/${slug}/run`, {}).then((r) => { say(r.error || "Added to the queue."); loadVideos(); });
 async function removeVideo(slug, btn) {
   if (!btn.dataset.sure) { btn.dataset.sure = 1; btn.textContent = "Click again to delete"; return; }  // browser pop-ups can be blocked
   const r = await api(`/api/videos/${slug}/delete`, {});
@@ -143,16 +146,61 @@ async function addAcct(name) {
   say(`${label} saved. Sign in on the page that opened. If nothing opened, press Open site.`);
 }
 
+const tick = (p, k, label) => `<label style="margin:0;font-weight:400"><input type="checkbox" style="width:auto" ${p[k] ? "checked" : ""} onchange="teamAct(${p.id},{${k}:this.checked})"> ${label}</label>`;
+function personHtml(p) {
+  const key = p.has_key ? (p.expires ? `key ends ${new Date(p.expires * 1000).toLocaleDateString()}` : "key never ends") : "no live key";
+  const head = `<div class="grow"><b>${esc(p.name)}</b> <span class="pill">${esc(p.role)}</span>${p.status === "paused" ? ` <span class="pill waiting">paused</span>` : ""}<br><small>${key}</small></div>`;
+  if (p.role === "admin") return `<div class="card"><div class="row">${head}</div></div>`;
+  return `<div class="card"><div class="row">${head}${p.role === "teammate" ? tick(p, "flow", "Flow") + tick(p, "muse", "Muse") : ""}
+    <button class="alt" onclick="teamAct(${p.id},{new_key:true})">New key</button>
+    <button class="alt" onclick="teamAct(${p.id},{revoke:true})">Revoke key</button>
+    <button class="alt" onclick="teamAct(${p.id},{status:'${p.status === "paused" ? "active" : "paused"}'})">${p.status === "paused" ? "Resume" : "Pause"}</button>
+    <button class="alt" onclick="removePerson(${p.id}, this)">Remove</button></div></div>`;
+}
+async function loadTeam() {
+  if (me.role !== "admin") return;
+  const list = await api("/api/team");
+  $("#team").innerHTML = (newKey ? `<div class="card"><b>Copy this key now. It will not be shown again.</b><pre>${esc(newKey)}</pre>
+      <div class="row"><button class="go" onclick="navigator.clipboard.writeText(newKey).then(() => say('Key copied'))">Copy key</button><button class="alt" onclick="newKey='';loadTeam()">Done</button></div></div>` : "") +
+    `<div class="card mute">A key lets someone use this app. It does not sign them in to Flow or Muse, and they never see a password.</div>
+    <div class="card"><div class="row"><input class="grow" id="t-name" placeholder="Teammate's name" aria-label="Teammate's name">
+      <label style="margin:0;font-weight:400"><input type="checkbox" id="t-flow" style="width:auto"> Flow</label>
+      <label style="margin:0;font-weight:400"><input type="checkbox" id="t-muse" style="width:auto"> Muse</label>
+      <button class="go" onclick="addPerson({name: $('#t-name').value, flow: $('#t-flow').checked, muse: $('#t-muse').checked})">Add and make key</button>
+      ${list.some((p) => p.role === "assistant") ? "" : `<button class="alt" onclick="addPerson({name: 'Assistant', assistant: true})">Make assistant key</button>`}</div></div>` +
+    list.map(personHtml).join("");
+}
+async function addPerson(body) {
+  const r = await api("/api/team", body);
+  if (r.key) newKey = r.key;
+  say(r.error || "Added."); loadTeam();
+}
+async function teamAct(id, body) {
+  const r = await api(`/api/team/${id}`, body);
+  if (r.key) newKey = r.key;
+  say(r.error || "Saved."); loadTeam();
+}
+function removePerson(id, btn) {
+  if (!btn.dataset.sure) { btn.dataset.sure = 1; btn.textContent = "Click again to remove"; return; }
+  teamAct(id, {status: "removed"});
+}
+
 $("#create").onclick = async () => {
   const topic = $("#topic").value.trim(), facts = $("#facts").value.trim();
   if (!topic || !facts) { say("Add a topic and the facts first."); return; }
   if (!document.querySelector(".ratio:checked")) { say("Tick at least one size."); return; }
-  await api("/api/videos", {topic, facts, sources: $("#sources").value.split("\n").map((s) => s.trim()).filter(Boolean), format: $("#format").value,
+  const r = await api("/api/videos", {topic, facts, sources: $("#sources").value.split("\n").map((s) => s.trim()).filter(Boolean), format: $("#format").value,
     writer: $("#writer").value, ratios: [...document.querySelectorAll(".ratio:checked")].map((c) => c.value)});
+  if (r.error) { say(r.error); return; }
   document.querySelector('nav button[data-tab="videos"]').click();
 };
 
-async function loadAll() { await loadPlugins(); loadVideos(); }
+async function loadAll() {
+  me = await api("/api/me");
+  $("#me").textContent = me.name;
+  document.querySelectorAll('[data-tab="plugins"], [data-tab="team"]').forEach((b) => b.hidden = me.role !== "admin");
+  await loadPlugins(); loadVideos(); loadTeam();
+}
 loadAll();
 setInterval(loadVideos, 4000);
 </script>

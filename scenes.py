@@ -4,11 +4,13 @@ Scene types: media (picture + headline), text (big lines), compare (two cards), 
 """
 import json
 import shutil
+from html import escape
 from pathlib import Path
 
 import checks
 
 ROOT = Path(__file__).parent
+TEXT = ("title", "sub", "left", "right", "stamp")
 SIZES = {"16x9": (1920, 1080), "9x16": (1080, 1920), "3x4": (1080, 1440)}
 # Where things go per ratio, in pixels. text = left, top, width of the headline area; cap = caption top.
 # 9:16 keeps text inside the 168-1330 band that platform buttons leave clear.
@@ -31,6 +33,12 @@ def caption_groups(words):
         if len(g) == 3 or w["w"][-1] in ".,?!":
             groups.append(g); g = []
     return groups + ([g] if g else [])
+
+
+def plain(scene):
+    """Scripts come from people and AI writers, so their words must never turn into code in the renderer."""
+    clean = lambda v: [escape(str(x), quote=False) for x in v] if isinstance(v, list) else escape(str(v), quote=False)
+    return {k: clean(v) if k in TEXT and v else v for k, v in scene.items()}
 
 
 def fit(text, width, largest):
@@ -152,7 +160,7 @@ class Page:
             nxt = groups[k + 1][0]["s"] if k + 1 < len(groups) else s + 3
             d = round(max(.2, min(nxt, g[-1]["e"] + .6) - s), 2)
             out.append(f'<div id="cap{k}" class="clip cap" data-start="{s}" data-duration="{d}" data-track-index="9" style="top:{self.L["cap"]}px">'
-                       f'<span>{" ".join(w["w"] for w in g)}</span></div>')
+                       f'<span>{escape(" ".join(w["w"] for w in g), quote=False)}</span></div>')
         return "\n".join(out)
 
     def build(self, media, words):
@@ -160,7 +168,7 @@ class Page:
         t = 0.0
         for b in self.spec["blocks"]:
             scenes = b["scenes"]
-            for s in scenes:
+            for s in map(plain, scenes):
                 d = round(s.get("dur", 10 / len(scenes)), 2)
                 self.n += 1
                 cid, t = f"s{self.n}", round(t, 2)
