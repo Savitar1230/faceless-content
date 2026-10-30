@@ -248,7 +248,7 @@ def run(slug):
         set_status(job, state="running", stage="script check", message="")
         problems = gate.check(spec)
         if problems: raise Blocked("Script check failed:\n" + "\n".join(problems))
-        if not spec.get("approved"): raise Blocked("Waiting for approval")
+        if not spec.get("approved"): raise Waiting("Waiting for approval")
         set_status(job, stage="voice and pictures")
         waiting = []
         vk = voice(job, spec, waiting)
@@ -266,9 +266,11 @@ def run(slug):
     except Waiting as e:
         set_status(job, state="waiting", message=str(e))
     except Blocked as e:
-        set_status(job, state="blocked", message=str(e))
+        set_status(job, state="failed", message=str(e))
     except Exception:
-        set_status(job, state="failed", message=traceback.format_exc()[-800:])
+        (job / "error.txt").write_text(traceback.format_exc(), encoding="utf-8")
+        stage = read(job / "status.json", {}).get("stage", "this step")
+        set_status(job, state="failed", message=f"Something went wrong at {stage}. Press Run again, or ask the admin to look at error.txt.")
     return read(job / "status.json")
 
 
@@ -308,7 +310,7 @@ def write_spec(slug, topic, facts, sources, fmt, ratios, writer="ollama_writer",
                 facts=facts, sources=sources, writer=writer, approved=False)
     problems = []
     for attempt in range(1, 4):
-        set_status(VIDEOS / slug, state="writing", stage=f"writing the script, try {attempt} of 3")
+        set_status(VIDEOS / slug, state="running", stage=f"writing the script, try {attempt} of 3")
         r = plugin_for(writer).safe_run({"prompt": prompt, "json": True})
         if not r["ok"]: raise Blocked(r["error"])
         text = r["text"]
@@ -323,5 +325,6 @@ def write_spec(slug, topic, facts, sources, fmt, ratios, writer="ollama_writer",
     else:
         spec = locals().get("spec", dict(base, title=topic, blocks=[]))
     write(VIDEOS / slug / "spec.json", spec)
-    set_status(VIDEOS / slug, state="draft", stage="review", message="\n".join(problems))
+    written = bool(spec.get("blocks"))
+    set_status(VIDEOS / slug, state="waiting" if written else "failed", stage="waiting for approval" if written else "writing the script", message="\n".join(problems))
     return spec

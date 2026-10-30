@@ -39,6 +39,12 @@ a.alt { background:#fff; border:1px solid var(--ink); padding:6px 12px; color:va
   <section id="videos"></section>
   <section id="new" hidden>
     <div class="card">
+      <div class="row">
+        <div class="grow"><label for="template">Template</label><select id="template"></select></div>
+        <div class="grow"><label for="t-save">Save these settings as</label><input id="t-save" placeholder="Template name"></div>
+        <button class="alt" id="saveTemplate" style="align-self:flex-end">Save template</button>
+        <button class="alt" id="delTemplate" style="align-self:flex-end">Delete template</button>
+      </div>
       <label for="topic">Topic</label><input id="topic" placeholder="Why tractors let air out of their tyres">
       <label for="facts">Facts (the script may only use these)</label><textarea id="facts"></textarea>
       <label for="sources">Source links, one per line</label><textarea id="sources" style="min-height:60px"></textarea>
@@ -52,6 +58,12 @@ a.alt { background:#fff; border:1px solid var(--ink); padding:6px 12px; color:va
       </div>
       <p><button class="go" id="create">Write the script</button></p>
     </div>
+    <div class="card">
+      <label for="rows">Many videos: one per line, topic | facts | source links | owner</label>
+      <textarea id="rows" placeholder="Why tractors let air out | Low pressure spreads the weight. | https://example.com"></textarea>
+      <small>Uses the format, writer and sizes above. Anything in the Facts box is added to every line. Only the admin can set an owner.</small>
+      <p><button class="go" id="createMany">Write all the scripts</button></p>
+    </div>
   </section>
   <section id="plugins" hidden></section>
   <section id="team" hidden></section>
@@ -60,7 +72,7 @@ a.alt { background:#fff; border:1px solid var(--ink); padding:6px 12px; color:va
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const api = (url, body) => fetch(url, body === undefined ? {} : {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)}).then((r) => { if (r.status === 401) location = "/login"; return r.json(); });
-let editing = null, lastVideos = "", plugins = [], me = {}, newKey = "";
+let editing = null, lastVideos = "", plugins = [], me = {}, newKey = "", templates = [];
 const say = (msg) => { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(say.t); say.t = setTimeout(() => t.hidden = true, 5000); };
 const siteOf = (name) => (plugins.find((p) => p.name === name) || {}).site;
 
@@ -82,21 +94,30 @@ function cardHtml(v, c) {
 
 async function loadVideos() {
   if (editing) return;
-  const list = await api("/api/videos");
-  const now = JSON.stringify(list) + plugins.length;
+  const [list, who] = await Promise.all([api("/api/videos"), api("/api/me")]);
+  me = who;
+  const now = JSON.stringify([list, who]) + plugins.length;
   if (now === lastVideos) return;  // redrawing would reset a playing video and swallow clicks
   lastVideos = now;
-  $("#videos").innerHTML = list.length ? list.map((v) => {
-    const st = v.status.state || "draft";
-    const busy = ["writing", "queued", "running"].includes(st);
-    const need = busy ? "" : !v.approved ? (v.blocks ? `<button class="go" onclick="approve('${v.slug}')">Approve and make</button>` : "") : st === "done" ? "" : `<button class="alt" onclick="runVideo('${v.slug}')">Run again</button>`;
+  const isBusy = (v) => ["queued", "running"].includes(v.status.state);
+  const ready = list.some((v) => !v.approved && v.blocks && !isBusy(v));
+  const bar = (who.queue_paused ? `<div class="card"><b>The queue is paused.</b> Work already running finishes, nothing new starts.</div>` : "") +
+    (who.role === "admin" || ready ? `<div class="row" style="margin-bottom:12px">
+      ${who.role === "admin" ? `<button class="alt" onclick="pauseQueue(${!who.queue_paused})">${who.queue_paused ? "Resume the queue" : "Pause the queue"}</button>` : ""}
+      ${ready ? `<button class="go" onclick="approveAll()">Approve all ready</button>` : ""}</div>` : "");
+  $("#videos").innerHTML = bar + (list.length ? list.map((v) => {
+    const st = v.status.state || "waiting";
+    const busy = isBusy(v);
+    const again = `<button class="alt" onclick="runVideo('${v.slug}')">Run again</button>`;
+    const need = busy ? "" : !v.approved ? (v.blocks ? `<button class="go" onclick="approve('${v.slug}')">Approve and make</button>` : again) : st === "done" ? "" : again;
+    const hold = st === "done" ? "" : `<button class="alt" onclick="pauseVideo('${v.slug}', ${!v.paused})">${v.paused ? "Resume" : "Pause"}</button>`;
     return `<div class="card"><div class="row"><div class="grow"><h3>${esc(v.title || v.slug)}</h3>
-      <span class="pill ${st}">${esc(st)}</span> <small>${esc(v.status.stage || "")} · ${esc(v.format)}</small></div>
-      ${need}<button class="alt" onclick="edit('${v.slug}')">Edit script</button>${busy ? "" : `<button class="alt" onclick="removeVideo('${v.slug}', this)">Delete</button>`}</div>
+      <span class="pill ${esc(st)}">${esc(st)}</span>${v.paused ? ` <span class="pill waiting">paused</span>` : ""} <small>${esc(v.status.stage || "")} · ${esc(v.format)}</small></div>
+      ${need}${hold}<button class="alt" onclick="edit('${v.slug}')">Edit script</button>${st === "running" ? "" : `<button class="alt" onclick="removeVideo('${v.slug}', this)">Delete</button>`}</div>
       ${v.status.message ? `<pre>${esc(v.status.message)}</pre>` : ""}
       ${v.cards.map((c) => cardHtml(v, c)).join("")}
       <div class="row">${v.outputs.filter((f) => f.endsWith(".mp4")).map((f) => `<div><small>${esc(f)}</small><br><video controls preload="metadata" src="/files/${v.slug}/${f}"></video></div>`).join("")}</div></div>`;
-  }).join("") : `<div class="card">No videos yet. Start one under New video.</div>`;
+  }).join("") : `<div class="card">No videos yet. Start one under New video.</div>`);
 }
 
 async function edit(slug) {
@@ -112,6 +133,9 @@ async function saveSpec(slug) {
 }
 const approve = (slug) => api(`/api/videos/${slug}/approve`, {}).then((r) => { say(r.error || "Approved. It is in the queue."); loadVideos(); });
 const runVideo = (slug) => api(`/api/videos/${slug}/run`, {}).then((r) => { say(r.error || "Added to the queue."); loadVideos(); });
+const pauseVideo = (slug, paused) => api(`/api/videos/${slug}/pause`, {paused}).then(() => { say(paused ? "Paused." : "Resumed."); loadVideos(); });
+const pauseQueue = (paused) => api("/api/queue/pause", {paused}).then(() => { say(paused ? "Queue paused." : "Queue resumed."); loadVideos(); });
+const approveAll = () => api("/api/approve-all", {}).then((r) => { say(r.error || `${r.approved} approved. Scripts that fail the check were left for you to fix.`); loadVideos(); });
 async function removeVideo(slug, btn) {
   if (!btn.dataset.sure) { btn.dataset.sure = 1; btn.textContent = "Click again to delete"; return; }  // browser pop-ups can be blocked
   const r = await api(`/api/videos/${slug}/delete`, {});
@@ -189,17 +213,51 @@ $("#create").onclick = async () => {
   const topic = $("#topic").value.trim(), facts = $("#facts").value.trim();
   if (!topic || !facts) { say("Add a topic and the facts first."); return; }
   if (!document.querySelector(".ratio:checked")) { say("Tick at least one size."); return; }
-  const r = await api("/api/videos", {topic, facts, sources: $("#sources").value.split("\n").map((s) => s.trim()).filter(Boolean), format: $("#format").value,
-    writer: $("#writer").value, ratios: [...document.querySelectorAll(".ratio:checked")].map((c) => c.value)});
+  const r = await api("/api/videos", {topic, facts, sources: $("#sources").value.split("\n").map((s) => s.trim()).filter(Boolean), ...settings()});
   if (r.error) { say(r.error); return; }
   document.querySelector('nav button[data-tab="videos"]').click();
+};
+const settings = () => ({format: $("#format").value, writer: $("#writer").value, ratios: [...document.querySelectorAll(".ratio:checked")].map((c) => c.value)});
+
+$("#createMany").onclick = async () => {
+  if (!document.querySelector(".ratio:checked")) { say("Tick at least one size."); return; }
+  const r = await api("/api/batch", {rows: $("#rows").value, facts: $("#facts").value, ...settings()});
+  if (r.error) { say(r.error); return; }
+  $("#rows").value = "";
+  say(`${r.slugs.length} videos are in the queue.`);
+  document.querySelector('nav button[data-tab="videos"]').click();
+};
+
+async function loadTemplates() {
+  const keep = $("#template").value;
+  templates = await api("/api/templates");
+  $("#template").innerHTML = `<option value="">None</option>` + templates.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join("");
+  $("#template").value = templates.some((t) => String(t.id) === keep) ? keep : "";
+}
+$("#template").onchange = () => {
+  const t = templates.find((x) => String(x.id) === $("#template").value);
+  if (!t) return;
+  $("#format").value = t.format; $("#writer").value = t.writer; $("#facts").value = t.facts;
+  document.querySelectorAll(".ratio").forEach((c) => c.checked = t.ratios.split(",").includes(c.value));
+  say(`${t.name} loaded.`);
+};
+$("#saveTemplate").onclick = async () => {
+  const r = await api("/api/templates", {name: $("#t-save").value, facts: $("#facts").value, ...settings()});
+  say(r.error || "Template saved.");
+  if (!r.error) $("#t-save").value = "";
+  loadTemplates();
+};
+$("#delTemplate").onclick = async () => {
+  if (!$("#template").value) { say("Pick a template first."); return; }
+  await api(`/api/templates/${$("#template").value}/delete`, {});
+  say("Template deleted."); loadTemplates();
 };
 
 async function loadAll() {
   me = await api("/api/me");
   $("#me").textContent = me.name;
   document.querySelectorAll('[data-tab="plugins"], [data-tab="team"]').forEach((b) => b.hidden = me.role !== "admin");
-  await loadPlugins(); loadVideos(); loadTeam();
+  await loadPlugins(); loadTemplates(); loadVideos(); loadTeam();
 }
 loadAll();
 setInterval(loadVideos, 4000);

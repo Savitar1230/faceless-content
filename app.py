@@ -1,11 +1,11 @@
 """The desktop app: open http://127.0.0.1:5895 . Plugins and accounts, new videos, approval, job cards, outputs.
-Videos run one at a time (a low-spec PC has no RAM for two).
+The queue and its limits live in work.py.
 """
-import queue
+import json
 import re
 import secrets
 import shutil
-import threading
+import time
 
 from flask import Flask, g, jsonify, redirect, render_template, request, send_from_directory, session, url_for
 from werkzeug.utils import secure_filename
@@ -13,26 +13,26 @@ from werkzeug.utils import secure_filename
 import pipeline as p
 import spec as gate
 import team
+import work
 from plugins import registry
 
 app = Flask(__name__)
 app.secret_key = team.secret()
 app.config.update(SESSION_COOKIE_SAMESITE="Strict", MAX_CONTENT_LENGTH=500 * 1024 * 1024)  # 500 MB is far above any single clip
-jobs = queue.Queue()
-ADMIN_ONLY = ("/api/team", "/api/accounts")
+ADMIN_ONLY = ("/api/team", "/api/accounts", "/api/queue")
+MAX_BATCH = 100
 
 
-def worker():
-    while True:
-        task = jobs.get()
-        try:
-            task()
-        except Exception:  # one bad job must not stop the queue
-            app.logger.exception("job failed")
-        jobs.task_done()
-
-
-threading.Thread(target=worker, daemon=True).start()
+def do(task):
+    """Runs one task from the queue and says how it ended. The plain reason is in the video's status."""
+    slug, job = task["job"], job_dir(task["job"])
+    try:
+        if task["line"] == "make": return p.run(slug)["state"]
+        p.write_spec(slug, **json.loads(task["args"]))
+        return p.read(job / "status.json")["state"]
+    except Exception as e:
+        p.set_status(job, state="failed", message=f"Writing the script failed: {e}")
+        return "failed"
 
 
 def job_dir(slug):
@@ -83,7 +83,13 @@ def home():
 
 @app.route("/api/me")
 def me():
-    return jsonify(name=g.me["name"], role=g.me["role"])
+    return jsonify(name=g.me["name"], role=g.me["role"], queue_paused=work.ALL in work.paused())
+
+
+@app.route("/api/queue/pause", methods=["POST"])
+def pause_queue():
+    work.pause(on=bool(request.json.get("paused")))
+    return jsonify(ok=True)
 
 
 @app.route("/api/team", methods=["GET", "POST"])
@@ -108,6 +114,9 @@ def person(pid):
     if b.get("status") not in (None, "active", "paused", "removed"): return jsonify(error="Unknown status."), 400
     if b.get("revoke"): team.revoke(pid)
     team.change(pid, b.get("flow"), b.get("muse"), b.get("status"))
+    if b.get("status") == "removed":
+        for job in work.drop_owner(pid):
+            p.set_status(p.VIDEOS / job, state="failed", stage="stopped", message="Stopped because the owner was removed.")
     if b.get("new_key"): return jsonify(key=team.new_key(pid, None if who["role"] == "assistant" else team.KEY_DAYS))
     return jsonify(ok=True)
 
@@ -141,34 +150,89 @@ def accounts(plugin):
 
 @app.route("/api/videos")
 def videos():
-    out = []
+    out, held = [], work.paused()
     for d in sorted(p.VIDEOS.glob("*/spec.json")):
         job, spec = d.parent, p.read(d)
         if not can_open(job.name): continue
         cards = [p.read(c) for c in sorted((job / "cards").glob("*.json"))]
-        out.append(dict(slug=job.name, title=spec.get("title", ""), format=spec.get("format"), approved=spec.get("approved"), blocks=len(spec.get("blocks", [])),
+        out.append(dict(slug=job.name, title=spec.get("title", ""), format=spec.get("format"), approved=spec.get("approved"), blocks=len(spec.get("blocks", [])), paused=job.name in held,
                         status=p.read(job / "status.json", {}), cards=cards,
                         outputs=[f.name for f in sorted((job / "out").glob("*"))] if (job / "out").exists() else []))
     return jsonify(out)
 
 
+def video_problem(topic, facts, fmt, writer):
+    if not topic or not facts: return "Add a topic and the facts."
+    if fmt not in ("short", "long"): return "Format must be short or long."
+    if writer == "claude_writer" and g.me["role"] != "admin": return "Only the admin can use the Claude writer."  # it runs on the admin's own Claude plan
+
+
+def add_video(owner, topic, facts, sources, fmt, ratios, writer):
+    slug = re.sub(r"[^a-z0-9]+", "-", topic.lower()).strip("-")[:40].strip("-")
+    slug = f"{slug or 'video'}-{secrets.token_hex(2)}"  # two people can pick the same topic
+    team.new_job(slug, owner)
+    p.write(job_dir(slug) / "spec.json", dict(slug=slug, title=topic, format=fmt, blocks=[]))
+    p.set_status(job_dir(slug), state="queued", stage="in the queue", message="")
+    work.add(slug, "write", dict(topic=topic, facts=facts, sources=sources, fmt=fmt, ratios=ratios, writer=writer))
+    return slug
+
+
 @app.route("/api/videos", methods=["POST"])
 def new_video():
     b = request.json
-    if b.get("writer") == "claude_writer" and g.me["role"] != "admin":  # it runs on the admin's own Claude plan
-        return jsonify(error="Only the admin can use the Claude writer."), 403
-    slug = re.sub(r"[^a-z0-9]+", "-", b["topic"].lower()).strip("-")[:40].strip("-")
-    slug = f"{slug or 'video'}-{secrets.token_hex(2)}"  # two people can pick the same topic
-    team.new_job(slug, g.me["id"])
-    p.write(job_dir(slug) / "spec.json", dict(slug=slug, title=b["topic"], format=b.get("format", "short"), blocks=[]))
-    p.set_status(job_dir(slug), state="writing", stage="writing the script", message="")
-    def task():
-        try:
-            p.write_spec(slug, b["topic"], b["facts"], b.get("sources", []), b.get("format", "short"), b.get("ratios", ["9x16"]), b.get("writer", "ollama_writer"))
-        except Exception as e:
-            p.set_status(job_dir(slug), state="blocked", message=str(e))
-    jobs.put(task)
-    return jsonify(slug=slug)
+    topic, facts, fmt, writer = b.get("topic", "").strip(), b.get("facts", "").strip(), b.get("format", "short"), b.get("writer", "ollama_writer")
+    problem = video_problem(topic, facts, fmt, writer)
+    if problem: return jsonify(error=problem), 400
+    return jsonify(slug=add_video(g.me["id"], topic, facts, b.get("sources", []), fmt, b.get("ratios", ["9x16"]), writer))
+
+
+def batch_rows(text, base, fmt, writer):
+    """Reads topic | facts | sources | owner, one video a line. Returns the rows, and a problem for each bad line."""
+    rows, bad = [], []
+    people = [x for x in team.people() if x["role"] != "assistant"]
+    for n, line in enumerate(text.splitlines(), 1):
+        if not line.strip(): continue
+        topic, facts, sources, owner = ([c.strip() for c in line.split("|")] + ["", "", ""])[:4]
+        facts = f"{base}\n{facts}".strip()
+        problem, who = video_problem(topic, facts, fmt, writer), g.me["id"]
+        if owner and g.me["role"] != "admin": problem = "only the admin can set an owner"
+        elif owner:
+            match = [x["id"] for x in people if x["name"].lower() == owner.lower()]
+            if len(match) != 1: problem = f"no single person called {owner}"
+            else: who = match[0]
+        if problem: bad.append(f"Line {n}: {problem}")
+        rows.append(dict(owner=who, topic=topic, facts=facts, sources=sources.split()))
+    return rows, bad
+
+
+@app.route("/api/batch", methods=["POST"])
+def batch():
+    """One line, one video, each tracked on its own. Nothing is queued unless every line is good."""
+    b = request.json
+    fmt, writer = b.get("format", "short"), b.get("writer", "ollama_writer")
+    rows, bad = batch_rows(b.get("rows", ""), b.get("facts", "").strip(), fmt, writer)
+    if not rows: bad.append("Add at least one line.")
+    if len(rows) > MAX_BATCH: bad.append(f"A batch can hold {MAX_BATCH} videos, this has {len(rows)}.")
+    if bad: return jsonify(error="\n".join(bad)), 400
+    return jsonify(slugs=[add_video(fmt=fmt, ratios=b.get("ratios", ["9x16"]), writer=writer, **r) for r in rows])
+
+
+@app.route("/api/templates", methods=["GET", "POST"])
+def templates():
+    """Saved settings the whole team can reuse."""
+    if request.method == "GET": return jsonify(team.sql("SELECT id, name, owner, format, ratios, writer, facts FROM templates ORDER BY name"))
+    b = request.json
+    name = b.get("name", "").strip()
+    if not name: return jsonify(error="Give the template a name."), 400
+    team.sql("INSERT INTO templates (name, owner, format, ratios, writer, facts, created) VALUES (?,?,?,?,?,?,?)", name, g.me["id"],
+             b.get("format", "short"), ",".join(b.get("ratios", ["9x16"])), b.get("writer", "ollama_writer"), b.get("facts", ""), time.time())
+    return jsonify(ok=True)
+
+
+@app.route("/api/templates/<int:tid>/delete", methods=["POST"])
+def delete_template(tid):
+    team.sql("DELETE FROM templates WHERE id=? AND (owner=? OR ?)", tid, g.me["id"], g.me["role"] == "admin")
+    return jsonify(ok=True)
 
 
 @app.route("/api/videos/<slug>/spec", methods=["GET", "POST"])
@@ -203,19 +267,42 @@ def approve(slug):
     return run(slug)
 
 
+@app.route("/api/approve-all", methods=["POST"])
+def approve_all():
+    """Approves every written script this person can see that passes the script check. A person still has to press it."""
+    if g.me["role"] == "assistant": return jsonify(error="A person has to approve a script."), 403
+    count = 0
+    for d in p.VIDEOS.glob("*/spec.json"):
+        slug, s = d.parent.name, p.read(d)
+        if can_open(slug) and s.get("blocks") and not s.get("approved") and not gate.check(s) and not missing_access(slug) and not work.live(slug):
+            approve(slug)
+            count += 1
+    return jsonify(approved=count)
+
+
 @app.route("/api/videos/<slug>/run", methods=["POST"])
 def run(slug):
     missing = missing_access(slug)
     if missing: return jsonify(error=f"You do not have {missing} access. Ask the admin."), 403
+    if work.live(slug): return jsonify(ok=True)  # already in the queue, so a second click changes nothing
     p.set_status(job_dir(slug), state="queued", stage="in the queue", message="")
-    jobs.put(lambda: p.run(slug))
+    args = work.write_args(slug)
+    if args and not p.read(job_dir(slug) / "spec.json").get("blocks"): work.add(slug, "write", args)  # the script never got written
+    else: work.add(slug, "make")
+    return jsonify(ok=True)
+
+
+@app.route("/api/videos/<slug>/pause", methods=["POST"])
+def pause_video(slug):
+    work.pause(slug, bool(request.json.get("paused")))
     return jsonify(ok=True)
 
 
 @app.route("/api/videos/<slug>/delete", methods=["POST"])
 def delete(slug):
-    if p.read(job_dir(slug) / "status.json", {}).get("state") in ("running", "queued", "writing"):
+    if p.read(job_dir(slug) / "status.json", {}).get("state") == "running":
         return jsonify(error="This video is still working"), 409
+    work.forget(slug)
     shutil.rmtree(job_dir(slug), ignore_errors=True)
     return jsonify(ok=True)
 
@@ -240,11 +327,18 @@ def files(slug, name):
     return send_from_directory(job_dir(slug) / "out", name)
 
 
+def resume():
+    """Queued work carries on after a restart. What was running does not resume by itself, and says so."""
+    p.VIDEOS.mkdir(exist_ok=True)
+    work.recover()
+    for st in p.VIDEOS.glob("*/status.json"):
+        if p.read(st, {}).get("state") in ("running", "queued", "writing") and not work.live(st.parent.name):
+            p.set_status(st.parent, state="failed", stage="stopped", message="Stopped by a restart. Press Run again.")
+    work.start(do)
+
+
 if __name__ == "__main__":
     first = team.setup()
     if first: print(f"\nFirst run. This is your admin key. Copy it now, it will not be shown again:\n\n{first}\n", flush=True)
-    p.VIDEOS.mkdir(exist_ok=True)
-    for st in p.VIDEOS.glob("*/status.json"):  # work that was running when the app closed will not resume by itself
-        if p.read(st, {}).get("state") in ("running", "queued", "writing"):
-            p.set_status(st.parent, state="blocked", stage="stopped", message="The app closed while this was working. Press Run again.")
+    resume()
     app.run(host="127.0.0.1", port=5895, threaded=True)

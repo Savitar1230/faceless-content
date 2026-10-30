@@ -19,6 +19,11 @@ CREATE TABLE IF NOT EXISTS people (id INTEGER PRIMARY KEY, name TEXT NOT NULL, r
 CREATE TABLE IF NOT EXISTS keys (hash TEXT PRIMARY KEY, person INTEGER NOT NULL REFERENCES people(id), expires REAL,
                                  revoked INTEGER NOT NULL DEFAULT 0, created REAL NOT NULL);
 CREATE TABLE IF NOT EXISTS jobs (id TEXT PRIMARY KEY, owner INTEGER NOT NULL REFERENCES people(id), created REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS queue (id INTEGER PRIMARY KEY, job TEXT NOT NULL, line TEXT NOT NULL, args TEXT NOT NULL,
+                                  state TEXT NOT NULL DEFAULT 'queued', created REAL NOT NULL, started REAL, ended REAL);
+CREATE TABLE IF NOT EXISTS paused (job TEXT PRIMARY KEY);
+CREATE TABLE IF NOT EXISTS templates (id INTEGER PRIMARY KEY, name TEXT NOT NULL, owner INTEGER NOT NULL REFERENCES people(id),
+                                      format TEXT NOT NULL, ratios TEXT NOT NULL, writer TEXT NOT NULL, facts TEXT NOT NULL, created REAL NOT NULL);
 """
 
 

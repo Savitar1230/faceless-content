@@ -23,6 +23,16 @@ The first start prints your admin key in the black window. Copy it, it is shown 
 
 The **Team** tab adds people and makes keys. A key is a login for this app only: it never signs anyone in to Flow or Muse, and only its hash is stored. Teammates see their own videos. The admin sees everything. The assistant key works as `Authorization: Bearer <key>`, and it cannot make keys, remove people or approve scripts.
 
+## Queue and batches
+
+Work is saved in `data/app.db`, so a restart loses nothing. Queued videos carry on, and a video that was running shows "Stopped by a restart" with a Run again button. Nothing retries by itself.
+
+Two lines run side by side: writing, and making (voice, captions, render). Each takes one video at a time. Change the numbers in `LIMITS` in `work.py` only after timing them on the host PC.
+
+Statuses are queued, running, waiting (for a person), done and failed. Each video can be paused, and the admin can pause the whole queue. Work already running finishes.
+
+**New video** also has templates, which save the format, writer, sizes and facts for the whole team, and a box for many videos: one per line as `topic | facts | source links | owner`. If any line is bad, nothing is queued. A person still approves each script, or presses **Approve all ready**.
+
 ## How a video is made
 
 1. **New video:** give a topic and facts. The writer plugin drafts the script and storyboard.
@@ -35,8 +45,8 @@ Accounts in the app are names only. Sign in to Flow and Muse in your browser. Th
 
 ## Files
 
-`app.py` the app · `team.py` people and keys · `pipeline.py` the stages · `spec.py` script check · `scenes.py` layouts for 3 sizes ·
+`app.py` the app · `team.py` people and keys · `work.py` the queue · `pipeline.py` the stages · `spec.py` script check · `scenes.py` layouts for 3 sizes ·
 `checks.py` clip and final checks · `plugins/` one folder per tool · `examples/calf.json` a full example ·
 `spike/` the faster skia engine, kept as a backup for slow PCs.
 
-Tests: `.venv/Scripts/python.exe tests/test_tool.py` and `.venv/Scripts/python.exe tests/test_team.py`
+Tests: run `tests/test_tool.py`, `tests/test_team.py` and `tests/test_queue.py` with `.venv/Scripts/python.exe`

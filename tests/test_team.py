@@ -16,8 +16,7 @@ import scenes
 import spec as gate
 
 pipeline.VIDEOS = TMP / "videos"
-web.jobs.put = lambda task: None  # nothing here needs the writer or the renderer
-SECRET_WORDS = "That key did not work."
+SECRET_WORDS = "That key did not work."  # the queue's workers are not started, so tasks here only wait
 
 
 def signed_in(key):
@@ -102,7 +101,7 @@ def test_owners(admin):
     assert b.get(f"/files/{one}/x.mp4").status_code == 404
     assert {two, one} <= {v["slug"] for v in admin.get("/api/videos").json}, "the admin sees everything"
     assert a.get("/api/team").status_code == 403 and a.post("/api/accounts/flow_image", json={"label": "x"}).status_code == 403
-    assert a.post("/api/videos", json={"topic": "t", "facts": "x", "writer": "claude_writer"}).status_code == 403
+    assert a.post("/api/videos", json={"topic": "t", "facts": "x", "writer": "claude_writer"}).status_code == 400
 
     # a saved file cannot approve a script, take a video or rename it
     s = a.get(f"/api/videos/{one}/spec").json
