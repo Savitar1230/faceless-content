@@ -1,0 +1,16 @@
+{
+  "name": "hyperframes_render",
+  "version": "1.0.0",
+  "needs_api_key": false,
+  "title": "HyperFrames",
+  "kind": "render",
+  "description": "Turns the built page into an MP4 with headless Chrome and FFmpeg.",
+  "free_tier": "Local, Apache-2.0",
+  "inputs": [
+    "dir",
+    "out"
+  ],
+  "outputs": [
+    "path"
+  ]
+}

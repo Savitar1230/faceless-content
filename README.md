@@ -1,1 +1,36 @@
-# faceless-content
+# Rumi Longform
+
+A script goes in, a finished editorial video comes out, in 9:16, 16:9 and 3:4. Runs on your own PC.
+
+## Start it
+
+Double-click `run.bat`, or run `.venv\Scripts\python.exe app.py`, then open http://127.0.0.1:5895
+
+First-time setup needs Python, Node.js and FFmpeg on the PC:
+
+```bash
+python -m venv .venv
+.venv/Scripts/python.exe -m pip install -r requirements.txt
+npm install
+```
+
+Put `kokoro-v1.0.onnx` and `voices-v1.0.bin` in `models/` (from the kokoro-onnx releases on GitHub).
+For the free local writer, start Ollama and run `ollama pull qwen2.5:7b`.
+
+## How a video is made
+
+1. **New video:** give a topic and facts. The writer plugin drafts the script and storyboard.
+2. **Edit script**, then **Approve and make**.
+3. The script check runs: hook length, word counts, plain words, and every number must be in your facts.
+4. Voice, pictures, captions, render per size, final check. Each step is a plugin in `plugins/`.
+5. Flow and Muse have no API, so they use **job cards**: copy the prompt, run it there, drop the file back in. The app checks each clip. A bad clip gets one retry with a fixed prompt, then the still image is used and the video is flagged.
+
+Accounts in the app are names only. Sign in to Flow and Muse in your browser. The app holds no passwords and never switches accounts by itself.
+
+## Files
+
+`app.py` the app · `pipeline.py` the stages · `spec.py` script check · `scenes.py` layouts for 3 sizes ·
+`checks.py` clip and final checks · `plugins/` one folder per tool · `examples/calf.json` a full example ·
+`spike/` the faster skia engine, kept as a backup for slow PCs.
+
+Tests: `.venv/Scripts/python.exe tests/test_tool.py`

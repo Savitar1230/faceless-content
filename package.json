@@ -1,0 +1,1 @@
+{ "name": "faceless-content", "private": true, "dependencies": { "hyperframes": "0.8.217", "gsap": "3.14.2" } }

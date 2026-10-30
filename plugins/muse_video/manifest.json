@@ -1,0 +1,25 @@
+{
+  "name": "muse_video",
+  "version": "1.0.0",
+  "needs_api_key": false,
+  "title": "Muse video",
+  "kind": "video",
+  "description": "Job card: run the prompt in Muse with the start image, drop the clip in.",
+  "free_tier": "Your Muse account",
+  "inputs": [
+    "id",
+    "prompt",
+    "ratio",
+    "start_image",
+    "job_dir"
+  ],
+  "outputs": [
+    "path"
+  ],
+  "card_ext": [
+    "mp4",
+    "mov",
+    "webm"
+  ],
+  "site": "https://muse.ai"
+}

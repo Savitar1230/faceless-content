@@ -1,0 +1,25 @@
+{
+  "name": "flow_image",
+  "version": "1.0.0",
+  "needs_api_key": false,
+  "title": "Google Flow (Nano Banana)",
+  "kind": "image",
+  "description": "Job card: run the prompt in Flow, drop the image in.",
+  "free_tier": "Your Flow account and credits",
+  "inputs": [
+    "id",
+    "prompt",
+    "ratio",
+    "job_dir"
+  ],
+  "outputs": [
+    "path"
+  ],
+  "card_ext": [
+    "png",
+    "jpg",
+    "jpeg",
+    "webp"
+  ],
+  "site": "https://flow.google.com"
+}

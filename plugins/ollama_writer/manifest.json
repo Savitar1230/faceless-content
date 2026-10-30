@@ -1,0 +1,16 @@
+{
+  "name": "ollama_writer",
+  "version": "1.0.0",
+  "needs_api_key": false,
+  "title": "Local LLM (Ollama)",
+  "kind": "text",
+  "description": "Writes and fixes scripts with a local model. Free, offline, slower.",
+  "free_tier": "Local, no network",
+  "inputs": [
+    "prompt"
+  ],
+  "outputs": [
+    "text"
+  ],
+  "model": "qwen2.5:7b"
+}

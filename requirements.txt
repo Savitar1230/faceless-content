@@ -1,0 +1,6 @@
+flask
+numpy
+soundfile
+kokoro-onnx
+faster-whisper
+rapidocr-onnxruntime

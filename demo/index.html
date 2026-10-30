@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=1080, height=1920" />
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+<style>
+@font-face { font-family: "Anton"; src: url("assets/fonts/Anton-Regular.ttf"); }
+@font-face { font-family: "Inter"; src: url("assets/fonts/Inter.ttf"); font-weight: 100 900; }
+:root { --paper:#F2EDE4; --ink:#111111; --accent:#D7263D; --second:#F4B400; }
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:1080px; height:1920px; overflow:hidden; background:var(--paper); }
+#root { position:relative; width:1080px; height:1920px; background:var(--paper); font-family:"Anton"; }
+.scene { position:absolute; inset:0; background:var(--paper); overflow:hidden; }
+.overlay { background:transparent; }
+.fill { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.blk { display:inline-block; padding:10px 28px 4px; color:var(--paper); font-size:96px; line-height:1.05; text-transform:uppercase; }
+.big { font-size:150px; } .small { font-size:64px; }
+.ink { background:var(--ink); } .accent { background:var(--accent); }
+.hook, .title, .tag { position:absolute; left:60px; right:60px; top:230px; display:flex; flex-direction:column; align-items:flex-start; gap:14px; }
+.plate { position:absolute; left:140px; top:500px; width:800px; height:600px; object-fit:cover; border:14px solid #fff; box-shadow:14px 14px 0 var(--ink); }
+.diag { position:absolute; inset:0; }
+.lab { position:absolute; width:360px; text-align:center; font-size:44px; color:var(--ink); }
+.stamp { position:absolute; left:110px; top:760px; font-size:120px; color:var(--accent); border:10px solid var(--accent); padding:0 24px; }
+.card { position:absolute; top:480px; width:440px; height:420px; display:flex; align-items:center; justify-content:center; font-size:96px; border:10px solid var(--ink); box-shadow:12px 12px 0 var(--ink); }
+.warm { left:60px; background:var(--second); color:var(--ink); } .cold { left:580px; background:var(--ink); color:var(--paper); }
+.cap { position:absolute; left:0; right:0; top:1180px; display:flex; justify-content:center; z-index:20; }
+.cap span { font-family:"Inter"; font-weight:800; font-size:62px; color:var(--ink); background:var(--paper); padding:8px 26px; border:6px solid var(--ink); }
+</style></head>
+<body>
+<div id="root" data-composition-id="main" data-start="0" data-duration="40" data-width="1080" data-height="1920">
+<video id="hook-v" class="clip fill" src="assets/calf_real.mp4" muted playsinline data-start="0" data-duration="3.4" data-track-index="0" style="z-index:0"></video>
+<div id="hook" class="clip scene overlay" data-start="0" data-duration="3.4" data-track-index="1" style="z-index:1">
+  <div class="hook" id="hook-card"><span class="blk accent big">NEVER A</span><span class="blk ink big">LOW BUCKET</span></div></div>
+<div id="switch" class="clip scene " data-start="3.4" data-duration="3.2" data-track-index="1" style="z-index:1">
+      <div class="title" id="switch-t"><span class="blk ink">A HIDDEN SWITCH</span><span class="blk accent small">IN ITS THROAT</span></div>
+      <img class="plate" id="switch-p" src="assets/calf_drawn.png"></div>
+<div id="where" class="clip scene " data-start="6.6" data-duration="3.4" data-track-index="1" style="z-index:1">
+      <div class="title" id="where-t"><span class="blk ink">WHERE DOES MILK GO?</span></div>
+      <svg class="diag" viewBox="0 0 1080 1920" width="1080" height="1920">
+        <path d="M540 400 L540 740 L320 940 M540 740 L760 940" stroke="#111" stroke-width="64" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M540 400 L540 740 L320 940 M540 740 L760 940" stroke="#F2EDE4" stroke-width="40" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <g id="where-s1"><circle cx="300" cy="1000" r="110" fill="#F4B400" stroke="#111" stroke-width="10"/></g>
+        <circle cx="780" cy="1000" r="110" fill="#F4B400" stroke="#111" stroke-width="10"/>
+        <line id="where-gate" x1="540" y1="740" x2="400" y2="880" stroke="#D7263D" stroke-width="26" stroke-linecap="round"/>
+        <circle id="where-d0" cx="540" cy="400" r="18" fill="#FFFFFF" stroke="#111" stroke-width="5"/><circle id="where-d1" cx="540" cy="400" r="18" fill="#FFFFFF" stroke="#111" stroke-width="5"/><circle id="where-d2" cx="540" cy="400" r="18" fill="#FFFFFF" stroke="#111" stroke-width="5"/><circle id="where-d3" cx="540" cy="400" r="18" fill="#FFFFFF" stroke="#111" stroke-width="5"/>
+      </svg>
+      <div class="lab" style="left:120px;top:1120px">STOMACH #1</div>
+      <div class="lab" style="left:600px;top:1120px">DIGESTING</div></div>
+<video id="up-v" class="clip fill" src="assets/calf_real.mp4" muted playsinline data-start="10" data-duration="3.2" data-track-index="0" style="z-index:0"></video>
+<div id="up" class="clip scene overlay" data-start="10" data-duration="3.2" data-track-index="1" style="z-index:1">
+      <div class="tag" id="up-tag"><span class="blk ink">HEAD UP</span><span class="blk accent small">SWITCH SHUT</span></div></div>
+<div id="skip" class="clip scene " data-start="13.2" data-duration="6.8" data-track-index="1" style="z-index:1">
+      <div class="title" id="skip-t"><span class="blk ink">SKIPS STOMACH #1</span></div>
+      <svg class="diag" viewBox="0 0 1080 1920" width="1080" height="1920">
+        <path d="M540 400 L540 740 L320 940 M540 740 L760 940" stroke="#111" stroke-width="64" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M540 400 L540 740 L320 940 M540 740 L760 940" stroke="#F2EDE4" stroke-width="40" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <g id="skip-s1"><circle cx="300" cy="1000" r="110" fill="#F4B400" stroke="#111" stroke-width="10"/></g>
+        <circle cx="780" cy="1000" r="110" fill="#F4B400" stroke="#111" stroke-width="10"/>
+        <line id="skip-gate" x1="540" y1="740" x2="400" y2="880" stroke="#D7263D" stroke-width="26" stroke-linecap="round"/>
+        <circle id="skip-d0" cx="540" cy="400" r="18" fill="#FFFFFF" stroke="#111" stroke-width="5"/><circle id="skip-d1" cx="540" cy="400" r="18" fill="#FFFFFF" stroke="#111" stroke-width="5"/><circle id="skip-d2" cx="540" cy="400" r="18" fill="#FFFFFF" stroke="#111" stroke-width="5"/><circle id="skip-d3" cx="540" cy="400" r="18" fill="#FFFFFF" stroke="#111" stroke-width="5"/>
+      </svg>
+      <div class="lab" style="left:120px;top:1120px">STOMACH #1</div>
+      <div class="lab" style="left:600px;top:1120px">DIGESTING</div></div>
+<div id="down" class="clip scene " data-start="20" data-duration="3.2" data-track-index="1" style="z-index:1">
+      <div class="title" id="down-t"><span class="blk ink">HEAD DOWN</span><span class="blk accent small">LOW BUCKET ✗</span></div>
+      <img class="plate" id="down-p" src="assets/calf_drawn2.png"></div>
+<div id="sour" class="clip scene " data-start="23.2" data-duration="6.8" data-track-index="1" style="z-index:1">
+      <div class="title" id="sour-t"><span class="blk ink">MILK GOES SOUR</span></div>
+      <svg class="diag" viewBox="0 0 1080 1920" width="1080" height="1920">
+        <path d="M540 400 L540 740 L320 940 M540 740 L760 940" stroke="#111" stroke-width="64" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M540 400 L540 740 L320 940 M540 740 L760 940" stroke="#F2EDE4" stroke-width="40" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <g id="sour-s1"><circle cx="300" cy="1000" r="110" fill="#F4B400" stroke="#111" stroke-width="10"/></g>
+        <circle cx="780" cy="1000" r="110" fill="#F4B400" stroke="#111" stroke-width="10"/>
+        <line id="sour-gate" x1="540" y1="740" x2="540" y2="540" stroke="#D7263D" stroke-width="26" stroke-linecap="round"/>
+        <circle id="sour-d0" cx="540" cy="400" r="18" fill="#FFFFFF" stroke="#111" stroke-width="5"/><circle id="sour-d1" cx="540" cy="400" r="18" fill="#FFFFFF" stroke="#111" stroke-width="5"/><circle id="sour-d2" cx="540" cy="400" r="18" fill="#FFFFFF" stroke="#111" stroke-width="5"/><circle id="sour-d3" cx="540" cy="400" r="18" fill="#FFFFFF" stroke="#111" stroke-width="5"/>
+      </svg>
+      <div class="lab" style="left:120px;top:1120px">STOMACH #1</div>
+      <div class="lab" style="left:600px;top:1120px">DIGESTING</div></div>
+<div id="sour-bloat" class="clip scene " data-start="27.6" data-duration="2.3999999999999995" data-track-index="3" style="z-index:3"><div class="stamp" id="sour-bl">BLOAT</div></div>
+<video id="height-v" class="clip fill" src="assets/calf_real.mp4" muted playsinline data-start="30" data-duration="3.4" data-track-index="0" style="z-index:0"></video>
+<div id="height" class="clip scene overlay" data-start="30" data-duration="3.4" data-track-index="1" style="z-index:1">
+      <div class="tag" id="height-tag"><span class="blk ink">TEATS AT</span><span class="blk accent small">NURSING HEIGHT</span></div></div>
+<div id="temp" class="clip scene " data-start="33.4" data-duration="3.4" data-track-index="1" style="z-index:1">
+  <div class="card warm" id="c-warm">WARM ✓</div><div class="card cold" id="c-cold">COLD ✗</div>
+  <div class="title" style="top:960px" id="temp-sub"><span class="blk accent small">COLD = SCOURS</span></div></div>
+<div id="payoff" class="clip scene " data-start="36.8" data-duration="3.2" data-track-index="1" style="z-index:1">
+  <div class="hook" style="top:520px" id="pay"><span class="blk ink big">HEAD UP.</span><span class="blk accent big">MILK WARM.</span>
+  <span class="blk ink small" id="echo">NEVER A LOW BUCKET.</span></div></div>
+<div id="cap0" class="clip cap" data-start="0.0" data-duration="1.2" data-track-index="9"><span>Never feed a</span></div>
+<div id="cap1" class="clip cap" data-start="1.2" data-duration="0.44" data-track-index="9"><span>calf from a</span></div>
+<div id="cap2" class="clip cap" data-start="1.64" data-duration="1.6" data-track-index="9"><span>low bucket. A</span></div>
+<div id="cap3" class="clip cap" data-start="3.24" data-duration="0.86" data-track-index="9"><span>calf has a</span></div>
+<div id="cap4" class="clip cap" data-start="4.1" data-duration="1.02" data-track-index="9"><span>hidden switch in</span></div>
+<div id="cap5" class="clip cap" data-start="5.12" data-duration="1.1" data-track-index="9"><span>its throat that</span></div>
+<div id="cap6" class="clip cap" data-start="6.22" data-duration="0.96" data-track-index="9"><span>decides where the</span></div>
+<div id="cap7" class="clip cap" data-start="7.18" data-duration="3.16" data-track-index="9"><span>milk goes. Head</span></div>
+<div id="cap8" class="clip cap" data-start="10.34" data-duration="1.0" data-track-index="9"><span>up, sucking like</span></div>
+<div id="cap9" class="clip cap" data-start="11.34" data-duration="1.24" data-track-index="9"><span>it's nursing, the</span></div>
+<div id="cap10" class="clip cap" data-start="12.58" data-duration="1.9" data-track-index="9"><span>switch snaps shut.</span></div>
+<div id="cap11" class="clip cap" data-start="14.68" data-duration="0.92" data-track-index="9"><span>The milk skips</span></div>
+<div id="cap12" class="clip cap" data-start="15.6" data-duration="0.98" data-track-index="9"><span>the first stomach</span></div>
+<div id="cap13" class="clip cap" data-start="16.58" data-duration="1.04" data-track-index="9"><span>and goes straight</span></div>
+<div id="cap14" class="clip cap" data-start="17.62" data-duration="2.74" data-track-index="9"><span>to digestion. Head</span></div>
+<div id="cap15" class="clip cap" data-start="20.36" data-duration="0.56" data-track-index="9"><span>down at a</span></div>
+<div id="cap16" class="clip cap" data-start="20.92" data-duration="1.06" data-track-index="9"><span>bucket, the switch</span></div>
+<div id="cap17" class="clip cap" data-start="21.98" data-duration="1.6" data-track-index="9"><span>can stay open.</span></div>
+<div id="cap18" class="clip cap" data-start="23.74" data-duration="0.96" data-track-index="9"><span>The milk spills</span></div>
+<div id="cap19" class="clip cap" data-start="24.7" data-duration="0.8" data-track-index="9"><span>into the first</span></div>
+<div id="cap20" class="clip cap" data-start="25.5" data-duration="2.0" data-track-index="9"><span>stomach, goes sour,</span></div>
+<div id="cap21" class="clip cap" data-start="27.5" data-duration="0.58" data-track-index="9"><span>and the calf</span></div>
+<div id="cap22" class="clip cap" data-start="28.08" data-duration="2.4" data-track-index="9"><span>bloats. So the</span></div>
+<div id="cap23" class="clip cap" data-start="30.48" data-duration="0.6" data-track-index="9"><span>teats sit at</span></div>
+<div id="cap24" class="clip cap" data-start="31.08" data-duration="1.4" data-track-index="9"><span>nursing height, and</span></div>
+<div id="cap25" class="clip cap" data-start="32.48" data-duration="0.76" data-track-index="9"><span>the milk goes</span></div>
+<div id="cap26" class="clip cap" data-start="33.24" data-duration="1.86" data-track-index="9"><span>in warm. Cold</span></div>
+<div id="cap27" class="clip cap" data-start="35.1" data-duration="1.14" data-track-index="9"><span>milk upsets the</span></div>
+<div id="cap28" class="clip cap" data-start="36.24" data-duration="0.82" data-track-index="9"><span>gut and brings</span></div>
+<div id="cap29" class="clip cap" data-start="37.06" data-duration="1.5" data-track-index="9"><span>on scours.</span></div>
+<audio id="vo" class="clip" src="assets/voice.wav" data-start="0" data-duration="40" data-track-index="10"></audio>
+</div>
+<script>
+const tl = gsap.timeline({ paused: true });
+tl.fromTo("#hook-card", {scale: 1.06}, {scale: 1, duration: 0.3, ease: "power2.out"}, 0);
+tl.from("#switch-p", {y: 700, rotation: 6, duration: 0.5, ease: "back.out(1.4)"}, 3.4);
+tl.to("#switch-p", {scale: 1.06, duration: 3.2, ease: "none"}, 3.4);
+tl.from("#switch-t", {x: -900, duration: 0.35, ease: "power3.out"}, 3.55);
+tl.from("#where-t", {x: -900, duration: 0.35, ease: "power3.out"}, 6.6);
+tl.fromTo("#where-gate", {rotation: -25}, {rotation: 25, duration: 0.6, ease: "sine.inOut", yoyo: true, repeat: 3, svgOrigin: "540 740"}, 6.8999999999999995);
+tl.from("#up-tag", {y: -40, duration: 0.25, ease: "back.out(2)"}, 10);
+tl.from("#skip-t", {x: -900, duration: 0.35, ease: "power3.out"}, 13.2);
+tl.fromTo("#skip-gate", {attr: {x2: 540, y2: 540}}, {attr: {x2: 400, y2: 880}, duration: 0.3, ease: "back.out(3)"}, 13.7);
+tl.to("#skip-d0", {attr: {cy: 740}, duration: 0.7, ease: "none"}, 14.2);
+tl.to("#skip-d0", {attr: {cx: 760, cy: 980}, duration: 0.6, ease: "power1.in"}, 14.899999999999999);
+tl.to("#skip-d1", {attr: {cy: 740}, duration: 0.7, ease: "none"}, 15.1);
+tl.to("#skip-d1", {attr: {cx: 760, cy: 980}, duration: 0.6, ease: "power1.in"}, 15.799999999999999);
+tl.to("#skip-d2", {attr: {cy: 740}, duration: 0.7, ease: "none"}, 16.0);
+tl.to("#skip-d2", {attr: {cx: 760, cy: 980}, duration: 0.6, ease: "power1.in"}, 16.7);
+tl.to("#skip-d3", {attr: {cy: 740}, duration: 0.7, ease: "none"}, 16.9);
+tl.to("#skip-d3", {attr: {cx: 760, cy: 980}, duration: 0.6, ease: "power1.in"}, 17.599999999999998);
+tl.from("#down-p", {y: 700, rotation: 6, duration: 0.5, ease: "back.out(1.4)"}, 20);
+tl.to("#down-p", {scale: 1.06, duration: 3.2, ease: "none"}, 20);
+tl.from("#down-t", {x: -900, duration: 0.35, ease: "power3.out"}, 20.15);
+tl.from("#sour-t", {x: -900, duration: 0.35, ease: "power3.out"}, 23.2);
+tl.to("#sour-d0", {attr: {cy: 740}, duration: 0.7, ease: "none"}, 24.2);
+tl.to("#sour-d0", {attr: {cx: 320, cy: 980}, duration: 0.6, ease: "power1.in"}, 24.9);
+tl.to("#sour-d1", {attr: {cy: 740}, duration: 0.7, ease: "none"}, 25.099999999999998);
+tl.to("#sour-d1", {attr: {cx: 320, cy: 980}, duration: 0.6, ease: "power1.in"}, 25.799999999999997);
+tl.to("#sour-d2", {attr: {cy: 740}, duration: 0.7, ease: "none"}, 26.0);
+tl.to("#sour-d2", {attr: {cx: 320, cy: 980}, duration: 0.6, ease: "power1.in"}, 26.7);
+tl.to("#sour-d3", {attr: {cy: 740}, duration: 0.7, ease: "none"}, 26.9);
+tl.to("#sour-d3", {attr: {cx: 320, cy: 980}, duration: 0.6, ease: "power1.in"}, 27.599999999999998);
+tl.to("#sour-s1", {scale: 1.45, svgOrigin: "300 1000", duration: 2.2, ease: "power2.in"}, 25.2);
+tl.from("#sour-bl", {scale: 1.8, rotation: -12, opacity: 0, duration: 0.3, ease: "back.out(2)"}, 27.6);
+tl.from("#height-tag", {y: -40, duration: 0.25, ease: "back.out(2)"}, 30);
+tl.from("#c-warm", {x: -900, duration: 0.4, ease: "back.out(1.6)"}, 33.4);
+tl.from("#c-cold", {x: 900, duration: 0.4, ease: "back.out(1.6)"}, 33.7);
+tl.from("#temp-sub", {y: 60, opacity: 0, duration: 0.3}, 34.3);
+tl.from("#pay .big", {y: 120, opacity: 0, stagger: 0.25, duration: 0.35, ease: "back.out(2)"}, 36.8);
+tl.from("#echo", {scale: 1.6, opacity: 0, duration: 0.3, ease: "back.out(2)"}, 38.0);
+window.__timelines = window.__timelines || {};
+window.__timelines["main"] = tl;
+</script>
+</body></html>

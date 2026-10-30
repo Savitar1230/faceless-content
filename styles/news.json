@@ -1,0 +1,8 @@
+{
+  "paper": "#F2EDE4",
+  "ink": "#111111",
+  "accent": "#D7263D",
+  "second": "#F4B400",
+  "head_file": "fonts/anton/Anton-Regular.ttf",
+  "body_file": "fonts/inter/Inter.ttf"
+}

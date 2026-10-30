@@ -1,0 +1,9 @@
+.venv/
+spike_out/
+__pycache__/
+models/
+node_modules/
+videos/
+data/
+demo/.hyperframes/
+demo/renders/

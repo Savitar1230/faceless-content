@@ -1,0 +1,25 @@
+{
+  "name": "muse_voice",
+  "version": "1.0.0",
+  "needs_api_key": false,
+  "title": "Muse voice",
+  "kind": "voice",
+  "description": "Job card: Muse reads the line in the described voice, drop the audio in.",
+  "free_tier": "Your Muse account",
+  "inputs": [
+    "id",
+    "line",
+    "voice",
+    "job_dir"
+  ],
+  "outputs": [
+    "path"
+  ],
+  "card_ext": [
+    "wav",
+    "mp3",
+    "m4a",
+    "mp4"
+  ],
+  "site": "https://muse.ai"
+}

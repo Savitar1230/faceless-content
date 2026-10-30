@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><title>Rumi Longform</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root { --paper:#F2EDE4; --ink:#111; --accent:#D7263D; --line:#d8d1c4; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.45 system-ui, sans-serif; }
+header { background:var(--ink); color:var(--paper); padding:14px 20px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+header b { font-size:20px; margin-right:16px; }
+nav button { background:none; color:var(--paper); border:0; padding:6px 12px; font:inherit; cursor:pointer; }
+nav button.on { background:var(--accent); }
+main { max-width:980px; margin:0 auto; padding:20px 16px; }
+.card { background:#fff; border:1px solid var(--line); padding:14px 16px; margin-bottom:12px; }
+.row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.grow { flex:1; min-width:180px; }
+h3 { margin:0 0 2px; } small, .mute { color:#666; }
+.pill { font-size:12px; padding:1px 8px; background:#eee; border:1px solid var(--line); }
+.pill.done { background:#d9f0dc; } .pill.blocked, .pill.failed { background:#f8d7da; } .pill.waiting { background:#fdeeba; }
+button.go { background:var(--accent); color:#fff; border:0; padding:7px 14px; font:inherit; cursor:pointer; }
+button.alt { background:#fff; border:1px solid var(--ink); padding:6px 12px; font:inherit; cursor:pointer; }
+input, textarea, select { font:inherit; padding:7px; border:1px solid #bbb; width:100%; background:#fff; }
+textarea { min-height:100px; } textarea.code { font:13px/1.4 Consolas, monospace; min-height:320px; }
+pre { white-space:pre-wrap; background:#f7f4ee; padding:10px; margin:8px 0; font:13px/1.4 Consolas, monospace; }
+label { display:block; margin:10px 0 4px; font-weight:600; }
+video { max-height:340px; max-width:100%; background:#000; }
+#toast { position:fixed; left:50%; bottom:20px; transform:translateX(-50%); background:var(--ink); color:var(--paper); padding:10px 18px; max-width:90%; z-index:9; }
+a.alt { background:#fff; border:1px solid var(--ink); padding:6px 12px; color:var(--ink); text-decoration:none; }
+</style></head>
+<body>
+<header><b>Rumi Longform</b><nav>
+  <button data-tab="videos" class="on">Videos</button>
+  <button data-tab="new">New video</button>
+  <button data-tab="plugins">Plugins &amp; accounts</button>
+</nav></header>
+<div id="toast" role="status" hidden></div>
+<main>
+  <section id="videos"></section>
+  <section id="new" hidden>
+    <div class="card">
+      <label for="topic">Topic</label><input id="topic" placeholder="Why tractors let air out of their tyres">
+      <label for="facts">Facts (the script may only use these)</label><textarea id="facts"></textarea>
+      <label for="sources">Source links, one per line</label><textarea id="sources" style="min-height:60px"></textarea>
+      <div class="row">
+        <div class="grow"><label for="format">Format</label><select id="format"><option value="short">Short (4 blocks, 40 s)</option><option value="long">Long (19 blocks, 190 s)</option></select></div>
+        <div class="grow"><label for="writer">Writer</label><select id="writer"></select></div>
+        <div class="grow"><label>Sizes</label><div class="row">
+          <label style="margin:0;font-weight:400"><input type="checkbox" class="ratio" value="9x16" checked style="width:auto"> 9:16</label>
+          <label style="margin:0;font-weight:400"><input type="checkbox" class="ratio" value="16x9" style="width:auto"> 16:9</label>
+          <label style="margin:0;font-weight:400"><input type="checkbox" class="ratio" value="3x4" style="width:auto"> 3:4</label></div></div>
+      </div>
+      <p><button class="go" id="create">Write the script</button></p>
+    </div>
+  </section>
+  <section id="plugins" hidden></section>
+</main>
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const api = (url, body) => fetch(url, body === undefined ? {} : {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)}).then((r) => r.json());
+let editing = null, lastVideos = "", plugins = [];
+const say = (msg) => { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(say.t); say.t = setTimeout(() => t.hidden = true, 5000); };
+const siteOf = (name) => (plugins.find((p) => p.name === name) || {}).site;
+
+document.querySelectorAll("nav button").forEach((b) => b.onclick = () => {
+  document.querySelectorAll("nav button").forEach((x) => x.classList.toggle("on", x === b));
+  document.querySelectorAll("main section").forEach((s) => s.hidden = s.id !== b.dataset.tab);
+  loadAll();
+});
+
+function cardHtml(v, c) {
+  return `<div class="card"><div class="row"><b class="grow">${esc(c.title)}: ${esc(c.id)}</b>
+    <small>${c.account ? "Use account: " + esc(c.account) : "No account chosen"} · try ${c.try}${c.ratio ? " · " + c.ratio : ""}</small></div>
+    <pre>${esc(c.prompt)}</pre>${c.start_image ? `<small>Start image: ${esc(c.start_image)}</small><br>` : ""}
+    <div class="row"><button class="alt" onclick="navigator.clipboard.writeText(${esc(JSON.stringify(c.prompt))}).then(() => say('Prompt copied'))">Copy prompt</button>
+    ${siteOf(c.plugin) ? `<a class="alt" href="${siteOf(c.plugin)}" target="_blank" rel="noopener">Open ${esc(c.title)}</a>` : ""}
+    <label class="alt" style="margin:0;font-weight:400;border:1px solid var(--ink);padding:6px 12px;cursor:pointer">Drop the finished file
+      <input type="file" hidden onchange="dropFile('${v.slug}','${esc(c.id)}',this.files[0])"></label></div></div>`;
+}
+
+async function loadVideos() {
+  if (editing) return;
+  const list = await api("/api/videos");
+  const now = JSON.stringify(list) + plugins.length;
+  if (now === lastVideos) return;  // redrawing would reset a playing video and swallow clicks
+  lastVideos = now;
+  $("#videos").innerHTML = list.length ? list.map((v) => {
+    const st = v.status.state || "draft";
+    const busy = ["writing", "queued", "running"].includes(st);
+    const need = busy ? "" : !v.approved ? (v.blocks ? `<button class="go" onclick="approve('${v.slug}')">Approve and make</button>` : "") : st === "done" ? "" : `<button class="alt" onclick="runVideo('${v.slug}')">Run again</button>`;
+    return `<div class="card"><div class="row"><div class="grow"><h3>${esc(v.title || v.slug)}</h3>
+      <span class="pill ${st}">${esc(st)}</span> <small>${esc(v.status.stage || "")} · ${esc(v.format)}</small></div>
+      ${need}<button class="alt" onclick="edit('${v.slug}')">Edit script</button>${busy ? "" : `<button class="alt" onclick="removeVideo('${v.slug}', this)">Delete</button>`}</div>
+      ${v.status.message ? `<pre>${esc(v.status.message)}</pre>` : ""}
+      ${v.cards.map((c) => cardHtml(v, c)).join("")}
+      <div class="row">${v.outputs.filter((f) => f.endsWith(".mp4")).map((f) => `<div><small>${esc(f)}</small><br><video controls preload="metadata" src="/files/${v.slug}/${f}"></video></div>`).join("")}</div></div>`;
+  }).join("") : `<div class="card">No videos yet. Start one under New video.</div>`;
+}
+
+async function edit(slug) {
+  editing = slug;
+  const s = await api(`/api/videos/${slug}/spec`);
+  $("#videos").innerHTML = `<div class="card"><h3>${esc(s.title)}</h3>
+    <label for="spec">Script and storyboard</label><textarea id="spec" class="code">${esc(JSON.stringify(s, null, 1))}</textarea>
+    <p class="row"><button class="go" onclick="saveSpec('${slug}')">Save</button><button class="alt" onclick="editing=null;loadVideos()">Cancel</button></p></div>`;
+}
+async function saveSpec(slug) {
+  let body; try { body = JSON.parse($("#spec").value); } catch (e) { alert("That is not valid: " + e.message); return; }
+  await api(`/api/videos/${slug}/spec`, body); editing = null; loadVideos();
+}
+const approve = (slug) => api(`/api/videos/${slug}/approve`, {}).then(() => { say("Approved. It is in the queue."); loadVideos(); });
+const runVideo = (slug) => api(`/api/videos/${slug}/run`, {}).then(() => { say("Added to the queue."); loadVideos(); });
+async function removeVideo(slug, btn) {
+  if (!btn.dataset.sure) { btn.dataset.sure = 1; btn.textContent = "Click again to delete"; return; }  // browser pop-ups can be blocked
+  const r = await api(`/api/videos/${slug}/delete`, {});
+  say(r.error || "Deleted."); loadVideos();
+}
+async function dropFile(slug, id, file) {
+  const fd = new FormData(); fd.append("file", file);
+  const r = await fetch(`/api/videos/${slug}/card/${id}`, {method:"POST", body:fd}).then((x) => x.json());
+  say(r.error || "File received. Checking it now."); loadVideos();
+}
+
+async function loadPlugins() {
+  const list = plugins = await api("/api/plugins");
+  $("#writer").innerHTML = list.filter((p) => p.kind === "text").map((p) => `<option value="${p.name}">${esc(p.title)}</option>`).join("");
+  $("#writer").value = "ollama_writer";  // free and local comes first
+  const kinds = {text:"Writing", voice:"Voice", image:"Images", video:"Video", render:"Render"};
+  $("#plugins").innerHTML = `<div class="card mute">Connect account opens the site so you can sign in there, and saves a name here so job cards show which account to use. The app never holds passwords and never switches accounts to get more free credits.</div>` +
+    Object.entries(kinds).map(([k, name]) => `<h3 style="margin:18px 0 8px">${name}</h3>` + list.filter((p) => p.kind === k).map((p) => `
+    <div class="card"><div class="row"><div class="grow"><b>${esc(p.title)}</b><br><small>${esc(p.description)} ${esc(p.free)}.</small></div></div>
+    ${p.card ? `<div style="margin-top:8px">${p.accounts.list.map((a) => `<div class="row"><label style="margin:0;font-weight:400" class="grow">
+      <input type="radio" name="a-${p.name}" style="width:auto" ${p.accounts.active === a.label ? "checked" : ""} onchange="acct('${p.name}',{active:${esc(JSON.stringify(a.label))}})"> ${esc(a.label)} <small>${esc(a.owner)}</small></label>
+      ${p.site ? `<a class="alt" href="${p.site}" target="_blank" rel="noopener">Open site</a>` : ""}<button class="alt" onclick="acct('${p.name}',{remove:${esc(JSON.stringify(a.label))}})">Remove</button></div>`).join("")}
+      <div class="row" style="margin-top:8px"><input class="grow" id="l-${p.name}" placeholder="Account name" aria-label="Account name"><input class="grow" id="o-${p.name}" placeholder="Who owns it" aria-label="Who owns it">
+      <button class="alt" onclick="addAcct('${p.name}')">Connect account</button></div></div>` : ""}</div>`).join("")).join("");
+}
+const acct = (name, body) => api(`/api/accounts/${name}`, body).then(loadPlugins);
+async function addAcct(name) {
+  const p = plugins.find((x) => x.name === name);
+  const label = $("#l-" + name).value.trim() || `${p.title} ${p.accounts.list.length + 1}`;
+  if (p.site) window.open(p.site, "_blank", "noopener");
+  await acct(name, {label, owner: $("#o-" + name).value});
+  say(`${label} saved. Sign in on the page that opened. If nothing opened, press Open site.`);
+}
+
+$("#create").onclick = async () => {
+  const topic = $("#topic").value.trim(), facts = $("#facts").value.trim();
+  if (!topic || !facts) { say("Add a topic and the facts first."); return; }
+  if (!document.querySelector(".ratio:checked")) { say("Tick at least one size."); return; }
+  await api("/api/videos", {topic, facts, sources: $("#sources").value.split("\n").map((s) => s.trim()).filter(Boolean), format: $("#format").value,
+    writer: $("#writer").value, ratios: [...document.querySelectorAll(".ratio:checked")].map((c) => c.value)});
+  document.querySelector('nav button[data-tab="videos"]').click();
+};
+
+async function loadAll() { await loadPlugins(); loadVideos(); }
+loadAll();
+setInterval(loadVideos, 4000);
+</script>
+</body></html>

@@ -1,0 +1,39 @@
+{
+ "slug": "calf-bucket",
+ "title": "Never feed a calf from a low bucket",
+ "format": "short",
+ "ratios": ["9x16", "16x9", "3x4"],
+ "style": "news",
+ "voice": {"plugin": "kokoro_voice", "voice": "af_heart", "speed": 0.8},
+ "facts": "Sucking head up, a fold in the throat (the esophageal groove) shuts and sends milk past the first stomach #1 (rumen) to the digesting stomach. Drinking head down from a low bucket, the groove can stay open, milk spills into the rumen, ferments and causes bloat. Teats sit at nursing height. Milk goes in warm. Cold milk chills the gut and brings on scours.",
+ "sources": [],
+ "writer": "ollama_writer",
+ "approved": true,
+ "pictures": {
+  "real": {"file": "demo/assets/calf_real.mp4"},
+  "drawn": {"file": "demo/assets/calf_drawn.png"},
+  "belly": {"file": "demo/assets/calf_drawn2.png"}
+ },
+ "blocks": [
+  {"line": "Never feed a calf from a low bucket. A calf has a hidden switch in its throat that decides where the milk goes.",
+   "scenes": [
+    {"type": "media", "pic": "real", "title": ["NEVER A", "LOW BUCKET"], "big": true, "dur": 3.4},
+    {"type": "media", "pic": "drawn", "title": "A HIDDEN SWITCH", "sub": "IN ITS THROAT", "dur": 3.2},
+    {"type": "fork", "title": "WHERE DOES MILK GO?", "left": "STOMACH #1", "right": "DIGESTING", "go": "none", "dur": 3.4}]},
+  {"line": "Head up, sucking like it's nursing, the switch snaps shut. The milk skips the first stomach and goes straight to digestion.",
+   "scenes": [
+    {"type": "media", "pic": "real", "title": "HEAD UP", "sub": "SWITCH SHUT", "dur": 3.2},
+    {"type": "fork", "title": "THE SWITCH SHUTS", "left": "STOMACH #1", "right": "DIGESTING", "go": "right", "dur": 3.8},
+    {"type": "text", "title": ["SKIPS", "STOMACH #1"], "dur": 3.0}]},
+  {"line": "Head down at a bucket, the switch can stay open. The milk spills into the first stomach, goes sour, and the calf bloats.",
+   "scenes": [
+    {"type": "media", "pic": "belly", "title": "HEAD DOWN", "sub": "LOW BUCKET", "dur": 3.2},
+    {"type": "fork", "title": "THE SWITCH STAYS OPEN", "left": "STOMACH #1", "right": "DIGESTING", "go": "left", "swell": true, "stamp": "BLOAT", "dur": 3.8},
+    {"type": "text", "title": ["MILK", "GOES SOUR"], "dur": 3.0}]},
+  {"line": "So the teats sit at nursing height, and the milk goes in warm. Cold milk upsets the gut and brings on scours.",
+   "scenes": [
+    {"type": "media", "pic": "real", "title": "TEATS AT", "sub": "NURSING HEIGHT", "dur": 3.4},
+    {"type": "compare", "left": "WARM ✓", "right": "COLD ✗", "dur": 3.4},
+    {"type": "text", "title": ["HEAD UP.", "MILK WARM."], "sub": "NEVER A LOW BUCKET.", "dur": 3.2}]}
+ ]
+}
