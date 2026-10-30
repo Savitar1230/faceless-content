@@ -43,10 +43,20 @@ Statuses are queued, running, waiting (for a person), done and failed. Each vide
 
 Accounts in the app are names only. Sign in to Flow and Muse in your browser. The app holds no passwords and never switches accounts by itself.
 
+## Cards and credits
+
+A card goes to the video owner's own account, or else the default account, and appears under **Cards** for the person who owns that account. Each person has one account per tool. Anyone who wants to help ticks **I can take handed cards**, and the admin can then hand them a card to run on their own account.
+
+Credits are an **estimate**: finished cards times the cost table on the **Dashboard**, because Flow and Muse show balances only on their own pages. Check the Flow image and Muse voice costs after a real card, because the defaults are guesses. When an account runs out its cards wait, with the prompt hidden. The owner can type the real balance under **Cards**. The app never moves a card to another account by itself.
+
+A generated file that passes is kept in `library/`, so the same prompt never costs credits twice.
+
+The Dashboard also has the audit log, the keep rule for finished videos, and the hours Ollama may run. Old videos are listed for you to delete, never deleted by themselves.
+
 ## Files
 
-`app.py` the app · `team.py` people and keys · `work.py` the queue · `pipeline.py` the stages · `spec.py` script check · `scenes.py` layouts for 3 sizes ·
+`app.py` the app · `team.py` people and keys · `work.py` the queue · `books.py` accounts, credits and the audit log · `pipeline.py` the stages · `spec.py` script check · `scenes.py` layouts for 3 sizes ·
 `checks.py` clip and final checks · `plugins/` one folder per tool · `examples/calf.json` a full example ·
 `spike/` the faster skia engine, kept as a backup for slow PCs.
 
-Tests: run `tests/test_tool.py`, `tests/test_team.py` and `tests/test_queue.py` with `.venv/Scripts/python.exe`
+Tests: run `tests/test_tool.py`, `tests/test_team.py`, `tests/test_queue.py` and `tests/test_books.py` with `.venv/Scripts/python.exe`

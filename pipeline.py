@@ -6,6 +6,7 @@ import difflib
 import hashlib
 import json
 import re
+import shutil
 import subprocess
 import traceback
 from pathlib import Path
@@ -13,14 +14,17 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
+import books
 import checks
 import scenes
 import spec as gate
+import team
 from plugins import registry
 
 ROOT = Path(__file__).parent
 VIDEOS = ROOT / "videos"
-ACCOUNTS = ROOT / "data" / "accounts.json"
+LIBRARY = ROOT / "library"  # generated files that passed, so the same prompt never costs credits twice
+ACCOUNTS = ROOT / "data" / "accounts.json"  # the old name list, read once by books.import_old
 SR, BLOCK, LEAD = 24000, 10.0, 0.15
 WINDOW = (7.8, 9.5)  # seconds of speech per 10 s block; a miss is rewritten, audio is never stretched
 TARGET = 8.6
@@ -50,9 +54,11 @@ def set_status(job, **fields):
 def key(*parts): return hashlib.sha1("|".join(map(str, parts)).encode()).hexdigest()[:10]
 
 
-def active_account(plugin):
-    """The account the person chose for this plugin. Never rotated: rule 5, no farming free credits."""
-    return read(ACCOUNTS, {}).get(plugin, {}).get("active")
+def route(name, job):
+    """Whose account a card uses and who gets the card. Never chosen by balance: rule 5, no farming free credits."""
+    if "card_ext" not in plugin_for(name).manifest: return {}
+    a = books.account_for(books.provider_of(name), team.owner(job.name))
+    return dict(account=a["label"], account_id=a["id"], person=a["person"]) if a else {}
 
 
 def plugin_for(name):
@@ -91,7 +97,7 @@ def voice(job, spec, waiting):
             tid = f"voice_{i:02}_{key(b['line'], v.get('voice'), v.get('speed'))}"
             out = job / "takes" / f"{tid}.wav"
             r = {"ok": True, "path": out} if out.exists() else plugin.safe_run(dict(
-                v, id=tid, line=b["line"], out=str(out), job_dir=str(job), account=active_account(v["plugin"])))
+                v, id=tid, line=b["line"], out=str(out), job_dir=str(job), **route(v["plugin"], job)))
             if r.get("waiting"):
                 waiting.append(tid)
                 break
@@ -123,8 +129,25 @@ def voice(job, spec, waiting):
 
 
 # ---------------------------------------------------------------- pictures
+def library_file(name, prompt, ratio, start):
+    return key(name, prompt, ratio, hashlib.sha1(Path(start).read_bytes()).hexdigest() if start else "")
+
+
+def remember(name, prompt, ratio, start, path):
+    """Only files that passed are kept, so a bad clip is never served again."""
+    LIBRARY.mkdir(exist_ok=True)
+    keep = LIBRARY / f"{library_file(name, prompt, ratio, start)}{Path(path).suffix}"
+    if not keep.exists(): shutil.copy(path, keep)
+
+
 def card(name, job, cid, prompt, **extra):
-    return plugin_for(name).safe_run(dict(extra, id=cid, prompt=prompt, job_dir=str(job), account=active_account(name)))
+    """Asks for a generated file. If the same prompt passed before, the saved file is used and costs nothing."""
+    saved = next(LIBRARY.glob(f"{library_file(name, prompt, extra.get('ratio'), extra.get('start_image'))}.*"), None)
+    if saved and not any((job / "inbox").glob(f"{cid}.*")):
+        (job / "inbox").mkdir(exist_ok=True)
+        shutil.copy(saved, job / "inbox" / f"{cid}{saved.suffix}")
+        books.log("library", "reused a saved file", job.name, "", 0)
+    return plugin_for(name).safe_run(dict(extra, id=cid, prompt=prompt, job_dir=str(job), **route(name, job)))
 
 
 def clip_verdict(job, path, seconds, ratio):
@@ -148,7 +171,9 @@ def ai_clip(job, spec, pid, p, start, waiting, flags):
             return None
         if not r["ok"]: raise Blocked(r["error"])
         bad = clip_verdict(job, r["path"], p.get("seconds", 3.5), w / h)
-        if not bad: return ("video", r["path"])
+        if not bad:
+            remember("muse_video", prompt, ratio, start, r["path"])
+            return ("video", r["path"])
         prompt = p["video"] + " " + " ".join(checks.FIX[b] for b in bad)
     flags.append(f"{pid}: clip failed twice ({', '.join(bad)}), using the still with engine motion")
     return ("image", start)
@@ -165,10 +190,13 @@ def pictures(job, spec, waiting, flags):
             if not path.exists(): raise Blocked(f"picture file not found: {p['file']}")
             media[pid] = ("video" if path.suffix.lower() in (".mp4", ".mov", ".webm") else "image", str(path))
         elif "image" in p:
-            r = card("flow_image", job, pid, p["image"], ratio=p.get("ratio", spec["ratios"][0]))
+            ratio = p.get("ratio", spec["ratios"][0])
+            r = card("flow_image", job, pid, p["image"], ratio=ratio)
             if r.get("waiting"): waiting.append(pid)
             elif not r["ok"]: raise Blocked(r["error"])
-            else: media[pid] = ("image", r["path"])
+            else:
+                media[pid] = ("image", r["path"])
+                remember("flow_image", p["image"], ratio, None, r["path"])
     for pid, p in pics.items():
         if "video" in p and p["from"] in media:
             got = ai_clip(job, spec, pid, p, media[p["from"]][1], waiting, flags)
@@ -262,6 +290,7 @@ def run(slug):
             outputs[ratio] = render(job, spec, ratio, media, caps, vk, flags)
         set_status(job, stage="final check")
         final(job, spec, outputs, caps, flags)
+        for b in job.glob("build_*"): shutil.rmtree(b, ignore_errors=True)  # rebuilt if ever needed, and about 30% of the disk a video uses
         set_status(job, state="done", stage="done", message="\n".join(flags))
     except Waiting as e:
         set_status(job, state="waiting", message=str(e))

@@ -25,11 +25,14 @@ label { display:block; margin:10px 0 4px; font-weight:600; }
 video { max-height:340px; max-width:100%; background:#000; }
 #toast { position:fixed; left:50%; bottom:20px; transform:translateX(-50%); background:var(--ink); color:var(--paper); padding:10px 18px; max-width:90%; z-index:9; }
 a.alt { background:#fff; border:1px solid var(--ink); padding:6px 12px; color:var(--ink); text-decoration:none; }
+table { width:100%; border-collapse:collapse; } th, td { text-align:left; padding:4px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
 </style></head>
 <body>
 <header><b>Rumi Longform</b><nav>
   <button data-tab="videos" class="on">Videos</button>
   <button data-tab="new">New video</button>
+  <button data-tab="cards" id="cardsTab">Cards</button>
+  <button data-tab="dashboard" hidden>Dashboard</button>
   <button data-tab="plugins" hidden>Plugins &amp; accounts</button>
   <button data-tab="team" hidden>Team</button>
 </nav><small id="me" style="margin-left:auto;color:var(--paper)"></small>
@@ -65,6 +68,8 @@ a.alt { background:#fff; border:1px solid var(--ink); padding:6px 12px; color:va
       <p><button class="go" id="createMany">Write all the scripts</button></p>
     </div>
   </section>
+  <section id="cards" hidden></section>
+  <section id="dashboard" hidden></section>
   <section id="plugins" hidden></section>
   <section id="team" hidden></section>
 </main>
@@ -72,7 +77,7 @@ a.alt { background:#fff; border:1px solid var(--ink); padding:6px 12px; color:va
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const api = (url, body) => fetch(url, body === undefined ? {} : {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)}).then((r) => { if (r.status === 401) location = "/login"; return r.json(); });
-let editing = null, lastVideos = "", plugins = [], me = {}, newKey = "", templates = [];
+let editing = null, lastVideos = "", lastCards = "", plugins = [], me = {}, newKey = "", templates = [];
 const say = (msg) => { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(say.t); say.t = setTimeout(() => t.hidden = true, 5000); };
 const siteOf = (name) => (plugins.find((p) => p.name === name) || {}).site;
 
@@ -82,14 +87,78 @@ document.querySelectorAll("nav button").forEach((b) => b.onclick = () => {
   loadAll();
 });
 
-function cardHtml(v, c) {
-  return `<div class="card"><div class="row"><b class="grow">${esc(c.title)}: ${esc(c.id)}</b>
-    <small>${c.account ? "Use account: " + esc(c.account) : "No account chosen"} · try ${esc(c.try)}${c.ratio ? " · " + esc(c.ratio) : ""}</small></div>
-    <pre>${esc(c.prompt)}</pre>${c.start_image ? `<small>Start image: ${esc(c.start_image)}</small><br>` : ""}
+function cardHtml(v, c, helpers = []) {
+  if (me.role !== "admin" && c.person !== me.id) return `<div class="card"><small>${esc(c.title)}: ${esc(c.id)} is waiting for ${c.account ? esc(c.account) : "an account"}.</small></div>`;
+  const handTo = helpers.filter((h) => h.provider === c.plugin.split("_")[0] && h.id !== c.account_id);
+  const hand = handTo.length ? `<div class="row" style="margin-top:8px"><select class="grow" aria-label="Hand this card to" onchange="handCard('${v.slug}',${esc(JSON.stringify(c.id))},this.value)"><option value="">Hand this card to...</option>${
+    handTo.map((h) => `<option value="${h.id}">${esc(h.owner)}: ${esc(h.label)} (${h.left} left, estimate)</option>`).join("")}</select></div>` : "";
+  const head = `<div class="row"><b class="grow">${esc(c.title)}: ${esc(c.id)}</b>
+    <small>${c.video ? esc(c.video) + " · " : ""}${c.account ? "Use account: " + esc(c.account) : "No account chosen"} · try ${esc(c.try)}${c.ratio ? " · " + esc(c.ratio) : ""}</small></div>`;
+  if (c.held) return `<div class="card">${head}<p><span class="pill waiting">out of credits</span> ${esc(c.account)} has nothing left (estimate). This card waits until it resets, or until the owner types the real balance.</p>${hand}</div>`;
+  return `<div class="card">${head}
+    <pre>${esc(c.prompt)}</pre>${c.start_image ? `<a class="alt" href="/api/videos/${v.slug}/card/${encodeURIComponent(c.id)}/start">Download the start image</a><br><br>` : ""}
     <div class="row"><button class="alt" onclick="navigator.clipboard.writeText(${esc(JSON.stringify(c.prompt))}).then(() => say('Prompt copied'))">Copy prompt</button>
     ${siteOf(c.plugin) ? `<a class="alt" href="${siteOf(c.plugin)}" target="_blank" rel="noopener">Open ${esc(c.title)}</a>` : ""}
     <label class="alt" style="margin:0;font-weight:400;border:1px solid var(--ink);padding:6px 12px;cursor:pointer">Drop the finished file
-      <input type="file" hidden onchange="dropFile('${v.slug}',${esc(JSON.stringify(c.id))},this.files[0])"></label></div></div>`;
+      <input type="file" hidden onchange="dropFile('${v.slug}',${esc(JSON.stringify(c.id))},this.files[0])"></label></div>${hand}</div>`;
+}
+
+async function loadCards() {
+  const d = await api("/api/cards");
+  const now = JSON.stringify(d);
+  $("#cardsTab").textContent = d.cards.length ? `Cards (${d.cards.length})` : "Cards";
+  if (now === lastCards) return;  // redrawing would wipe a half-typed balance
+  lastCards = now;
+  const names = {flow: "Flow", muse: "Muse"};
+  const box = (provider) => {
+    const a = d.mine.find((x) => x.provider === provider);
+    return `<div class="card"><b>Your ${names[provider]} account</b>
+      <div class="row"><input class="grow" id="my-${provider}" value="${esc(a ? a.label : "")}" placeholder="Account name" aria-label="Your ${names[provider]} account name">
+        <button class="alt" onclick="saveMine('${provider}',{label:$('#my-${provider}').value})">Save</button></div>
+      ${a ? `<div class="row" style="margin-top:8px"><small class="grow">${a.left} of ${a.limit} left this ${provider === "flow" ? "day" : "week"} (estimate)</small>
+        <input style="width:150px" id="left-${provider}" type="number" min="0" placeholder="Real balance" aria-label="Real ${names[provider]} balance"><button class="alt" onclick="saveMine('${provider}',{left:$('#left-${provider}').value})">Save balance</button>
+        <label style="margin:0;font-weight:400"><input type="checkbox" style="width:auto" ${a.helps ? "checked" : ""} onchange="saveMine('${provider}',{helps:this.checked})"> I can take handed cards</label></div>` : ""}</div>`;
+  };
+  $("#cards").innerHTML = `<div class="card mute">You do not need a Flow or Muse account to use this app. If you have one, add it here. Run each card in your own browser, then drop the file in. Nobody else ever needs your login.</div>` +
+    (d.cards.length ? d.cards.map((c) => cardHtml({slug: c.slug}, c, d.helpers)).join("") : `<div class="card">No cards for you right now.</div>`) + box("flow") + box("muse");
+}
+async function saveMine(provider, body) {
+  const r = await api(`/api/mine/${provider}`, body);
+  say(r.error || "Saved."); lastCards = ""; loadCards();
+}
+async function handCard(slug, id, account) {
+  if (!account) return;
+  const r = await api(`/api/videos/${slug}/card/${encodeURIComponent(id)}/hand`, {account: +account});
+  say(r.error || "Card handed over."); lastCards = ""; loadCards();
+}
+
+async function loadDashboard() {
+  if (me.role !== "admin") return;
+  const d = await api("/api/dashboard");
+  const s = d.states, set = d.settings;
+  const stat = (label, n) => `<div class="card grow"><small>${label}</small><br><b style="font-size:26px">${n}</b></div>`;
+  const field = (k, label) => `<div class="grow"><label for="s-${k}">${label}</label><input id="s-${k}" type="number" min="0" step="any" value="${set[k]}"></div>`;
+  const table = (heads, rows) => `<table><tr>${heads.map((h) => `<th>${h}</th>`).join("")}</tr>${rows.map((r) => `<tr>${r.map((x) => `<td>${esc(x)}</td>`).join("")}</tr>`).join("")}</table>`;
+  $("#dashboard").innerHTML = (d.warnings.length ? `<div class="card"><b>Needs you</b>${d.warnings.map((w) => `<p style="margin:6px 0">${esc(w)}</p>`).join("")}</div>` : "") +
+    `<div class="row">${stat("Jobs today", d.jobs_today)}${stat("In the queue", (s.queued || 0) + (s.running || 0))}${stat("Waiting for a person", s.waiting || 0)}${stat("Failed", s.failed || 0)}${stat("Cards open", d.cards_open)}${stat("Cards out of credits", d.cards_held)}</div>
+    <h3 style="margin:18px 0 8px">Usage per account (estimate)</h3><div class="card">${table(["Account", "Tool", "Owner", "Used", "Left", "Limit"], d.accounts.map((a) => [a.label, a.provider, a.owner, a.used, a.left, a.limit]))}</div>
+    <h3 style="margin:18px 0 8px">Usage per person today (estimate)</h3><div class="card">${table(["Person", "Role", "Jobs", "Credits"], d.people.map((x) => [x.name, x.role, x.jobs_today, x.credits_today]))}</div>
+    ${d.failed.length ? `<h3 style="margin:18px 0 8px">Failed</h3><div class="card">${table(["Video", "Why"], d.failed.map((f) => [f.title, f.message]))}</div>` : ""}
+    <h3 style="margin:18px 0 8px">Costs and rules</h3><div class="card"><div class="row">${field("flow_image", "Flow image cost")}${field("muse_video", "Muse video cost")}${field("muse_voice", "Muse voice cost")}${field("flow_limit", "Flow credits a day")}${field("muse_limit", "Muse videos a week")}</div>
+      <div class="row">${field("keep_days", "Keep finished videos, days (0 = always)")}${field("ollama_from", "Ollama from hour")}${field("ollama_to", "Ollama to hour")}</div>
+      <p><button class="go" onclick="saveSettings()">Save</button></p></div>
+    ${d.cleanup.length ? `<div class="card"><b>${d.cleanup.length} videos are past your keep rule</b><p>${d.cleanup.map((c) => esc(c.title)).join(", ")}</p><button class="alt" onclick='cleanOld(${esc(JSON.stringify(d.cleanup.map((c) => c.slug)))}, this)'>Delete these videos</button></div>` : ""}
+    <h3 style="margin:18px 0 8px">Audit log, newest first</h3><div class="card">${table(["When", "Who", "What", "Video", "Account", "Credits"], d.audit.map((a) => [new Date(a.at * 1000).toLocaleString(), a.who, a.action, a.job, a.account, a.credits ?? ""]))}</div>`;
+}
+async function saveSettings() {
+  const body = Object.fromEntries([...document.querySelectorAll('[id^="s-"]')].map((i) => [i.id.slice(2), i.value]));
+  const r = await api("/api/settings", body);
+  say(r.error || "Saved."); loadDashboard(); lastCards = ""; loadCards();
+}
+async function cleanOld(videos, btn) {
+  if (!btn.dataset.sure) { btn.dataset.sure = 1; btn.textContent = "Click again to delete"; return; }
+  const r = await api("/api/cleanup", {videos});
+  say(r.error || `${r.deleted} deleted.`); loadDashboard(); loadVideos();
 }
 
 async function loadVideos() {
@@ -116,7 +185,7 @@ async function loadVideos() {
       ${need}${hold}<button class="alt" onclick="edit('${v.slug}')">Edit script</button>${st === "running" ? "" : `<button class="alt" onclick="removeVideo('${v.slug}', this)">Delete</button>`}</div>
       ${v.status.message ? `<pre>${esc(v.status.message)}</pre>` : ""}
       ${v.cards.map((c) => cardHtml(v, c)).join("")}
-      <div class="row">${v.outputs.filter((f) => f.endsWith(".mp4")).map((f) => `<div><small>${esc(f)}</small><br><video controls preload="metadata" src="/files/${v.slug}/${f}"></video></div>`).join("")}</div></div>`;
+      <div class="row">${v.outputs.filter((f) => f.endsWith(".mp4")).map((f) => `<div><small>${esc(f)}</small><br><video controls preload="metadata" src="/files/${v.slug}/${esc(f)}"></video><br><a class="alt" href="/files/${v.slug}/${esc(f)}?download=1">Download</a></div>`).join("")}</div></div>`;
   }).join("") : `<div class="card">No videos yet. Start one under New video.</div>`);
 }
 
@@ -144,11 +213,12 @@ async function removeVideo(slug, btn) {
 async function dropFile(slug, id, file) {
   const fd = new FormData(); fd.append("file", file);
   const r = await fetch(`/api/videos/${slug}/card/${id}`, {method:"POST", body:fd}).then((x) => x.json());
-  say(r.error || "File received. Checking it now."); loadVideos();
+  say(r.error || "File received."); loadVideos(); lastCards = ""; loadCards();
 }
 
 async function loadPlugins() {
   const list = plugins = await api("/api/plugins");
+  const owners = me.role === "admin" ? await api("/api/team") : [];
   $("#writer").innerHTML = list.filter((p) => p.kind === "text").map((p) => `<option value="${p.name}">${esc(p.title)}</option>`).join("");
   $("#writer").value = "ollama_writer";  // free and local comes first
   const kinds = {text:"Writing", voice:"Voice", image:"Images", video:"Video", render:"Render"};
@@ -158,16 +228,16 @@ async function loadPlugins() {
     ${p.card ? `<div style="margin-top:8px">${p.accounts.list.map((a) => `<div class="row"><label style="margin:0;font-weight:400" class="grow">
       <input type="radio" name="a-${p.name}" style="width:auto" ${p.accounts.active === a.label ? "checked" : ""} onchange="acct('${p.name}',{active:${esc(JSON.stringify(a.label))}})"> ${esc(a.label)} <small>${esc(a.owner)}</small></label>
       ${p.site ? `<a class="alt" href="${p.site}" target="_blank" rel="noopener">Open site</a>` : ""}<button class="alt" onclick="acct('${p.name}',{remove:${esc(JSON.stringify(a.label))}})">Remove</button></div>`).join("")}
-      <div class="row" style="margin-top:8px"><input class="grow" id="l-${p.name}" placeholder="Account name" aria-label="Account name"><input class="grow" id="o-${p.name}" placeholder="Who owns it" aria-label="Who owns it">
+      <div class="row" style="margin-top:8px"><input class="grow" id="l-${p.name}" placeholder="Account name" aria-label="Account name"><select class="grow" id="o-${p.name}" aria-label="Who owns it">${owners.map((o) => `<option value="${o.id}">${esc(o.name)}</option>`).join("")}</select>
       <button class="alt" onclick="addAcct('${p.name}')">Connect account</button></div></div>` : ""}</div>`).join("")).join("");
 }
-const acct = (name, body) => api(`/api/accounts/${name}`, body).then(loadPlugins);
+const acct = (name, body) => api(`/api/accounts/${name}`, body).then(async (r) => { await loadPlugins(); return r; });
 async function addAcct(name) {
   const p = plugins.find((x) => x.name === name);
   const label = $("#l-" + name).value.trim() || `${p.title} ${p.accounts.list.length + 1}`;
   if (p.site) window.open(p.site, "_blank", "noopener");
-  await acct(name, {label, owner: $("#o-" + name).value});
-  say(`${label} saved. Sign in on the page that opened. If nothing opened, press Open site.`);
+  const r = await acct(name, {label, person: +$("#o-" + name).value});
+  say(r.error || `${label} saved. Sign in on the page that opened. If nothing opened, press Open site.`);
 }
 
 const tick = (p, k, label) => `<label style="margin:0;font-weight:400"><input type="checkbox" style="width:auto" ${p[k] ? "checked" : ""} onchange="teamAct(${p.id},{${k}:this.checked})"> ${label}</label>`;
@@ -256,10 +326,10 @@ $("#delTemplate").onclick = async () => {
 async function loadAll() {
   me = await api("/api/me");
   $("#me").textContent = me.name;
-  document.querySelectorAll('[data-tab="plugins"], [data-tab="team"]').forEach((b) => b.hidden = me.role !== "admin");
-  await loadPlugins(); loadTemplates(); loadVideos(); loadTeam();
+  document.querySelectorAll('[data-tab="plugins"], [data-tab="team"], [data-tab="dashboard"]').forEach((b) => b.hidden = me.role !== "admin");
+  await loadPlugins(); loadTemplates(); loadVideos(); loadTeam(); loadCards(); loadDashboard();
 }
 loadAll();
-setInterval(loadVideos, 4000);
+setInterval(() => { loadVideos(); loadCards(); }, 4000);
 </script>
 </body></html>

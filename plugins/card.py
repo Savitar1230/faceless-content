@@ -24,6 +24,9 @@ class CardPlugin(Plugin):
                 return {"ok": True, "path": str(done)}
         card = {"id": inputs["id"], "plugin": self.name, "title": self.manifest["title"], "prompt": self.prompt(inputs),
                 "ratio": inputs.get("ratio"), "start_image": inputs.get("start_image"), "account": inputs.get("account"),
-                "try": inputs.get("try", 1), "ext": self.manifest["card_ext"]}
+                "account_id": inputs.get("account_id"), "person": inputs.get("person"), "try": inputs.get("try", 1), "ext": self.manifest["card_ext"]}
+        old = json.loads(card_path.read_text(encoding="utf-8")) if card_path.exists() else {}
+        if old.get("handed"):  # a card the admin handed on stays with that person when the video runs again
+            card.update({k: old[k] for k in ("account", "account_id", "person", "handed")})
         card_path.write_text(json.dumps(card, indent=1), encoding="utf-8")
         return {"ok": False, "waiting": True, "error": f"waiting for {inputs['id']}"}

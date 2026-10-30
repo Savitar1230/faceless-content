@@ -24,6 +24,13 @@ CREATE TABLE IF NOT EXISTS queue (id INTEGER PRIMARY KEY, job TEXT NOT NULL, lin
 CREATE TABLE IF NOT EXISTS paused (job TEXT PRIMARY KEY);
 CREATE TABLE IF NOT EXISTS templates (id INTEGER PRIMARY KEY, name TEXT NOT NULL, owner INTEGER NOT NULL REFERENCES people(id),
                                       format TEXT NOT NULL, ratios TEXT NOT NULL, writer TEXT NOT NULL, facts TEXT NOT NULL, created REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS accounts (id INTEGER PRIMARY KEY, provider TEXT NOT NULL, label TEXT NOT NULL, person INTEGER NOT NULL REFERENCES people(id),
+                                     is_default INTEGER NOT NULL DEFAULT 0, helps INTEGER NOT NULL DEFAULT 0, real_left REAL, real_at REAL,
+                                     UNIQUE (provider, person));
+CREATE TABLE IF NOT EXISTS spend (id INTEGER PRIMARY KEY, account INTEGER NOT NULL REFERENCES accounts(id), job TEXT NOT NULL, card TEXT NOT NULL,
+                                  credits REAL NOT NULL, at REAL NOT NULL, UNIQUE (job, card));
+CREATE TABLE IF NOT EXISTS audit (id INTEGER PRIMARY KEY, at REAL NOT NULL, who TEXT NOT NULL, action TEXT NOT NULL, job TEXT, account TEXT, credits REAL);
+CREATE TABLE IF NOT EXISTS settings (name TEXT PRIMARY KEY, value TEXT NOT NULL);
 """
 
 
@@ -120,7 +127,9 @@ def owner(job):
     return rows[0]["owner"] if rows else None  # older videos have no owner, so only the admin sees them
 
 
-def jobs_of(person): return {r["id"] for r in sql("SELECT id FROM jobs WHERE owner=?", person)}
+def job_info(job):
+    rows = sql("SELECT p.name, j.created FROM jobs j JOIN people p ON p.id = j.owner WHERE j.id=?", job)
+    return rows[0] if rows else None
 
 
 if __name__ == "__main__":

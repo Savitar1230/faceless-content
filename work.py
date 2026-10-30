@@ -6,6 +6,7 @@ import threading
 import time
 import traceback
 
+import books
 import team
 
 # Workers per line. 2 renders at once were no faster than 1 after the other and used more RAM (measured 2026-10-30).
@@ -33,7 +34,8 @@ def claim(line):
                          SELECT q.id FROM queue q LEFT JOIN jobs j ON j.id = q.job LEFT JOIN people o ON o.id = j.owner
                          WHERE q.line=? AND q.state='queued' AND (o.status IS NULL OR o.status='active')
                            AND NOT EXISTS (SELECT 1 FROM paused x WHERE x.job IN (q.job, ?))
-                         ORDER BY q.id LIMIT 1) RETURNING *""", time.time(), line, ALL)
+                           AND (? OR IFNULL(json_extract(q.args, '$.writer'), '') != 'ollama_writer')
+                         ORDER BY q.id LIMIT 1) RETURNING *""", time.time(), line, ALL, books.ollama_hour())
     return rows[0] if rows else None
 
 
