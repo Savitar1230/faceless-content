@@ -11,7 +11,7 @@ import { ROOT } from './lib.mjs';
 
 const out = join(ROOT, 'videos/_test/assets/images');
 mkdirSync(out, { recursive: true });
-const colors = ['0x1d3557', '0x2a9d8f', '0x6a4c93', '0x8d5524'];
+const colors = ['0x1d3557', '0x2a9d8f', '0x6a4c93', '0x8d5524', '0x264653', '0x9b2226', '0x3a5a40', '0x5f0f40'];
 colors.forEach((c, i) => {
   const vf = [
     'drawgrid=w=160:h=160:t=1:c=white@0.2',

@@ -3,34 +3,51 @@
   "voice": "bm_george",
   "accent": "#FFC94D",
   "formats": ["16x9", "3x4"],
+  "captions": "karaoke",
   "scenes": [
     {
       "id": "s01",
-      "image": "assets/images/s01.png",
-      "kicker": "Chapter 1",
-      "title": "The Test",
       "narration": "This is a pipeline test.",
-      "motion": "push-in"
+      "shots": [
+        { "image": "assets/images/s01.png", "motion": "punch-in" }
+      ]
     },
     {
       "id": "s02",
-      "image": "assets/images/s02.png",
-      "narration": "The yellow square must stay visible in *both formats*, and the red edges may only be cropped in three by four.",
-      "motion": "parallax",
-      "label": "Cover mode"
+      "kicker": "Chapter 1",
+      "title": "Framing",
+      "transition": "flash",
+      "shots": [{ "image": "assets/images/s05.png" }]
     },
     {
       "id": "s03",
-      "image": "assets/images/s03.png",
-      "narration": "Here the vertical version sweeps across the whole wide frame.",
-      "fit3x4": "pan",
-      "transition": "dip"
+      "narration": "The yellow square must stay visible in *both formats*, and the red edges may only be cropped in three by four.",
+      "label": "Cover mode",
+      "transition": "slide",
+      "shots": [
+        { "image": "assets/images/s02.png", "motion": "parallax" },
+        { "image": "assets/images/s06.png" },
+        { "image": "assets/images/s07.png" }
+      ]
     },
     {
       "id": "s04",
-      "image": "assets/images/s04.png",
+      "narration": "Here the vertical version sweeps across the whole wide frame.",
+      "transition": "zoom",
+      "riser": true,
+      "shots": [
+        { "image": "assets/images/s03.png", "fit3x4": "pan" },
+        { "image": "assets/images/s08.png" }
+      ]
+    },
+    {
+      "id": "s05",
       "narration": "And here the full frame sits over a *blurred copy* of itself.",
-      "fit3x4": "blur"
+      "transition": "dip",
+      "shots": [
+        { "image": "assets/images/s04.png", "fit3x4": "blur" },
+        { "image": "assets/images/s01.png", "motion": "pull-out" }
+      ]
     }
   ]
 }

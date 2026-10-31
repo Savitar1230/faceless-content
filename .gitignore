@@ -8,3 +8,7 @@ videos/*/build/
 node_modules/
 .hyperframes/
 **/.hyperframes/
+
+# QA reports (regenerate with scripts/qa-video.mjs)
+videos/*/qa/
+qa/
