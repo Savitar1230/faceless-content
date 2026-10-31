@@ -99,6 +99,17 @@ Menus can take a moment to paint in the built-in browser. A screenshot right aft
 - Check the cost line first, and stop if it isn't what's expected.
 - Prompts must never contain quoted text. A stored prompt reading `Only text: 'SAND TO BOTTLE'` is how quote marks ended up in pictures.
 
+## Confirmed in the pilot (2026-10-31)
+
+- **Nano Banana 2.1 cost 0 credits.** The balance didn't change after about 60 images.
+- **Speed:** about 20 to 25 s per image. Four can run at once.
+- **Size:** 1K is 1376×768, 2K is 2752×1536, JPEG. 2K takes about 7 s.
+- **Generating:** click the box, Ctrl+A, type, wait 2 s, click the arrow, wait 3 s. Without the wait the click can be ignored, and the next prompt gets spliced into the old one. Ctrl+A stops that.
+- **Project ZIP:** Download project gives all images at 1K with descriptive file names. Good for review, not for final use.
+- **2K per image:** open an image, click a thumbnail, wait 2 s, Download media, wait 1 s, 2K, wait 3 s. Click empty space first, or the first click after a pause is lost. Check that the page address changes.
+- **Next media** only scrolls the strip. Strip references get recycled, so re-read them after scrolling.
+- **Downloads** land in Downloads as `.tmp`, then get their real name a few minutes later.
+
 ## Still unverified
 
 Each needs one real generation:

@@ -187,6 +187,8 @@ function planShots(scenes) {
         missing: imageRel && !hasImage,
         aspect: size ? size.w / size.h : 16 / 9,
         focus: clamp(Number(r.focus ?? s.focus ?? 50), 0, 100),
+        focusY: clamp(Number(r.focusY ?? 50), 0, 100),
+        zoom: Math.max(1, Number(r.zoom) || 1), // cut-in on the same picture: a new shot size with perfect continuity
       });
       t += dur;
     });
@@ -395,12 +397,14 @@ function renderHtml(F) {
       tweens.push(`tl.fromTo("${sel('bg')}", { scale: 1.05 }, { scale: 1.15, duration: ${u.clipDur}, ease: "none" }, ${u.start});`);
       tweens.push(`tl.fromTo("${sel('cam')}", { scale: 1.0 }, { scale: 1.06, duration: ${u.clipDur}, ease: "sine.inOut" }, ${u.start});`);
     } else {
-      layers.push(`<div class="cam" id="${u.uid}-cam"><img class="plate" src="${u.imageRel}" alt="" style="${objPos}" /></div>`);
+      const origin = u.zoom > 1 ? ` style="transform-origin:${isPortrait ? 50 : u.focus}% ${u.focusY}%"` : '';
+      layers.push(`<div class="cam" id="${u.uid}-cam"${origin}><img class="plate" src="${u.imageRel}" alt="" style="${objPos}" /></div>`);
       if (u.cutout) layers.push(`<div class="cam" id="${u.uid}-cut"><img class="plate" src="${u.cutout}" alt="" style="${objPos}" /></div>`);
     }
     if (fit === 'cover' || !u.imageRel || (fit === 'blur' && !u.blurRel)) {
       const m = MOTIONS[u.motion];
-      tweens.push(`tl.fromTo("${sel('cam')}", ${js(scaleMotion(m.from, amp))}, { ...${js(scaleMotion(m.to, amp))}, duration: ${u.clipDur}, ease: "sine.inOut" }, ${u.start});`);
+      const zoom = isPortrait ? 1 + (u.zoom - 1) / 2 : u.zoom; // 3:4 is already a tight crop of the picture
+      tweens.push(`tl.fromTo("${sel('cam')}", ${js(scaleMotion(m.from, amp, zoom))}, { ...${js(scaleMotion(m.to, amp, zoom))}, duration: ${u.clipDur}, ease: "sine.inOut" }, ${u.start});`);
       if (u.cutout && u.imageRel) tweens.push(`tl.fromTo("${sel('cut')}", ${js(scaleMotion(CUTOUT_MOTION.from, amp))}, { ...${js(scaleMotion(CUTOUT_MOTION.to, amp))}, duration: ${u.clipDur}, ease: "sine.inOut" }, ${u.start});`);
     }
     const [tDur] = TRANSITIONS[u.transition];
@@ -530,9 +534,9 @@ ${body.join('\n')}
 }
 
 // ---------------------------------------------------------------------------
-function scaleMotion(state, amp) {
+function scaleMotion(state, amp, zoom = 1) {
   const out = {};
-  for (const [k, v] of Object.entries(state)) out[k] = k === 'scale' ? round(1 + (v - 1) * amp) : round(v * amp);
+  for (const [k, v] of Object.entries(state)) out[k] = k === 'scale' ? round((1 + (v - 1) * amp) * zoom) : round(v * amp);
   return out;
 }
 
