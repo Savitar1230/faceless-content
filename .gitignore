@@ -1,0 +1,10 @@
+# Generated media and builds (large; regenerate with the scripts)
+renders/
+videos/*/assets/
+videos/*/build/
+
+# Local tool state
+.cache/
+node_modules/
+.hyperframes/
+**/.hyperframes/
