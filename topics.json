@@ -1,0 +1,295 @@
+{
+ "used_topics": [
+  "T001"
+ ],
+ "topic_bank": [
+  {
+   "category": "Nature and animals",
+   "id": "T001",
+   "topic": "How bees make honey and why bees dance to tell each other where flowers are",
+   "why_interesting": "A small insect team that talks with dance and makes food from flowers"
+  },
+  {
+   "category": "Space and Earth",
+   "id": "T002",
+   "topic": "Why the Moon changes shape every night and why we only see one side of it",
+   "why_interesting": "A nightly change most people see but few can explain in simple words"
+  },
+  {
+   "category": "Space and Earth",
+   "id": "T003",
+   "topic": "How volcanoes form and why some erupt quietly while others explode",
+   "why_interesting": "Fire and rock under our feet with two very different kinds of eruption"
+  },
+  {
+   "category": "Science and body",
+   "id": "T004",
+   "topic": "How the human heart pumps blood all day without ever getting tired",
+   "why_interesting": "A pump that works for a whole life with no rest"
+  },
+  {
+   "category": "Science and body",
+   "id": "T005",
+   "topic": "Why we dream and what the brain does while we sleep",
+   "why_interesting": "A nightly mystery that happens to everyone"
+  },
+  {
+   "category": "History and culture",
+   "id": "T006",
+   "topic": "How ancient people built pyramids without modern machines",
+   "why_interesting": "Huge stone buildings made with simple tools and smart planning"
+  },
+  {
+   "category": "Food and daily life",
+   "id": "T007",
+   "topic": "How coffee travels from a small farm bean to your morning cup",
+   "why_interesting": "A daily drink with a long journey across the world"
+  },
+  {
+   "category": "Space and Earth",
+   "id": "T008",
+   "topic": "Why the sky looks blue in the day and red at sunset",
+   "why_interesting": "A colour change we see every day, explained with light"
+  },
+  {
+   "category": "Nature and animals",
+   "id": "T009",
+   "topic": "How penguins survive the coldest winters on Earth",
+   "why_interesting": "Birds that cannot fly but can stand together in a storm"
+  },
+  {
+   "category": "History and culture",
+   "id": "T010",
+   "topic": "How the first maps were made before satellites and GPS",
+   "why_interesting": "Sailors and walkers who drew the world by hand"
+  },
+  {
+   "category": "Science and body",
+   "id": "T011",
+   "topic": "Why yawning is contagious and what it tells us about the brain",
+   "why_interesting": "A small action that spreads from person to person for no clear reason"
+  },
+  {
+   "category": "Nature and animals",
+   "id": "T012",
+   "topic": "How honeybees, ants, and termites build cities without a boss",
+   "why_interesting": "Tiny builders that work together with no leader in charge"
+  },
+  {
+   "category": "Space and Earth",
+   "id": "T013",
+   "topic": "How rain forms in clouds and why some clouds bring thunder",
+   "why_interesting": "Water that rises, cools, and falls back as rain and storms"
+  },
+  {
+   "category": "History and culture",
+   "id": "T014",
+   "topic": "How the wheel changed travel, work, and trade forever",
+   "why_interesting": "One simple round shape that changed how humans move things"
+  },
+  {
+   "category": "Food and daily life",
+   "id": "T015",
+   "topic": "Why chocolate melts in your mouth but not in your hand as fast",
+   "why_interesting": "A sweet that was made to melt at body heat"
+  },
+  {
+   "category": "Technology and future",
+   "id": "T016",
+   "topic": "How robots learn to walk and why balance is so hard for them",
+   "why_interesting": "A task babies learn easily but machines still struggle with"
+  },
+  {
+   "category": "Technology and future",
+   "id": "T017",
+   "topic": "How the internet travels under the sea through cables on the ocean floor",
+   "why_interesting": "Messages that cross oceans through wires laid by ships"
+  },
+  {
+   "category": "Science and body",
+   "id": "T018",
+   "topic": "Why we get goosebumps and what they meant for our early ancestors",
+   "why_interesting": "A leftover animal reaction that still shows up in humans"
+  },
+  {
+   "category": "History and culture",
+   "id": "T019",
+   "topic": "How salt was once worth more than gold and changed whole empires",
+   "why_interesting": "A white crystal that built roads, paid soldiers, and started wars"
+  },
+  {
+   "category": "Nature and animals",
+   "id": "T020",
+   "topic": "How cats see in the dark and why their eyes shine at night",
+   "why_interesting": "Night hunters with eyes built very differently from ours"
+  },
+  {
+   "category": "History and culture",
+   "id": "T021",
+   "topic": "How a simple lighthouse kept ships safe for hundreds of years",
+   "why_interesting": "A tower of light that guided sailors home in storms"
+  },
+  {
+   "category": "Science and body",
+   "id": "T022",
+   "topic": "Why ice floats on water and why that matters for fish in winter",
+   "why_interesting": "Frozen water that should sink but instead protects life below it"
+  },
+  {
+   "category": "Food and daily life",
+   "id": "T023",
+   "topic": "How bread rises and why yeast makes dough soft and full of air",
+   "why_interesting": "A daily food made alive by tiny living things"
+  },
+  {
+   "category": "Nature and animals",
+   "id": "T024",
+   "topic": "How birds know where to fly when they migrate thousands of miles",
+   "why_interesting": "Travellers with no map who still find the same place every year"
+  },
+  {
+   "category": "Technology and future",
+   "id": "T025",
+   "topic": "How the first photographs were made and why people were scared of them",
+   "why_interesting": "A new way to keep a moment that once felt like magic"
+  },
+  {
+   "category": "Space and Earth",
+   "id": "T026",
+   "topic": "Why the seasons change and why summer in one place is winter in another",
+   "why_interesting": "A tilt of the Earth that gives us summer and winter at opposite times"
+  },
+  {
+   "category": "Science and body",
+   "id": "T027",
+   "topic": "How your brain remembers a song from years ago in seconds",
+   "why_interesting": "Memory that wakes up fast with just a few notes"
+  },
+  {
+   "category": "Food and daily life",
+   "id": "T028",
+   "topic": "How tea spread from one plant in Asia to cups all over the world",
+   "why_interesting": "A leaf that travelled with traders and became a daily habit"
+  },
+  {
+   "category": "Technology and future",
+   "id": "T029",
+   "topic": "How bridges stay up and why some sway in the wind on purpose",
+   "why_interesting": "Heavy roads held in the air by tension, balance, and smart design"
+  },
+  {
+   "category": "Science and body",
+   "id": "T030",
+   "topic": "Why we laugh and what laughter does for our health and our friendships",
+   "why_interesting": "A sound that connects people and helps the body relax"
+  },
+  {
+   "category": "Nature and animals",
+   "id": "T031",
+   "topic": "How the deep sea stays dark and how animals there make their own light",
+   "why_interesting": "A world with no sun where animals glow to hunt and to hide"
+  },
+  {
+   "category": "History and culture",
+   "id": "T032",
+   "topic": "How paper was invented and why it changed books, letters, and learning",
+   "why_interesting": "A thin sheet that let knowledge travel far and cheap"
+  },
+  {
+   "category": "Technology and future",
+   "id": "T033",
+   "topic": "How electric cars charge and where their power really comes from",
+   "why_interesting": "A car with no petrol tank, powered by a battery and a grid"
+  },
+  {
+   "category": "Food and daily life",
+   "id": "T034",
+   "topic": "Why honey never goes bad and what bees put in it to keep it safe",
+   "why_interesting": "A food found in old tombs that was still good to eat"
+  },
+  {
+   "category": "Space and Earth",
+   "id": "T035",
+   "topic": "How earthquakes happen and why some places shake more than others",
+   "why_interesting": "Ground that moves in slow plates and then suddenly slips"
+  },
+  {
+   "category": "Science and body",
+   "id": "T036",
+   "topic": "How the human eye works like a camera and why we blink without thinking",
+   "why_interesting": "A living camera that focuses, cleans itself, and never stops"
+  },
+  {
+   "category": "Technology and future",
+   "id": "T037",
+   "topic": "How wind turbines turn wind into power for homes and towns",
+   "why_interesting": "Giant fans that catch moving air and turn it into light"
+  },
+  {
+   "category": "Nature and animals",
+   "id": "T038",
+   "topic": "Why leaves change colour in autumn and why trees drop them",
+   "why_interesting": "Green leaves that turn gold and red as trees get ready for winter"
+  },
+  {
+   "category": "History and culture",
+   "id": "T039",
+   "topic": "How the first schools were started and what children learned long ago",
+   "why_interesting": "Learning before books were common, in temples, homes, and open air"
+  },
+  {
+   "category": "Technology and future",
+   "id": "T040",
+   "topic": "How your phone knows where you are without asking you",
+   "why_interesting": "Signals from space that find a small device on a huge planet"
+  },
+  {
+   "category": "Science and body",
+   "id": "T041",
+   "topic": "Why we sneeze and how the body tries to protect itself in seconds",
+   "why_interesting": "A fast burst that clears dust and germs from the nose"
+  },
+  {
+   "category": "Food and daily life",
+   "id": "T042",
+   "topic": "How ice cream was made before freezers and why it was a luxury",
+   "why_interesting": "A cold sweet made with ice, salt, and a lot of hard work"
+  },
+  {
+   "category": "Space and Earth",
+   "id": "T043",
+   "topic": "How the Moon affects the tides and why the sea rises twice a day",
+   "why_interesting": "A pull from far away that moves whole oceans"
+  },
+  {
+   "category": "Nature and animals",
+   "id": "T044",
+   "topic": "How bees, butterflies, and birds help plants make new seeds",
+   "why_interesting": "Pollinators that carry life from flower to flower"
+  },
+  {
+   "category": "History and culture",
+   "id": "T045",
+   "topic": "How the first hospitals cared for sick people without modern medicine",
+   "why_interesting": "Care, clean water, and rest long before antibiotics existed"
+  },
+  {
+   "category": "Food and daily life",
+   "id": "T046",
+   "topic": "How a simple umbrella was invented and why it took so long to catch on",
+   "why_interesting": "A tool for rain that was once seen as strange and fancy"
+  },
+  {
+   "category": "Space and Earth",
+   "id": "T047",
+   "topic": "Why the stars twinkle and planets do not twinkle in the same way",
+   "why_interesting": "Light that bends through moving air on its way to our eyes"
+  },
+  {
+   "category": "Technology and future",
+   "id": "T048",
+   "topic": "How your voice travels from your throat to a friend's ear on a call",
+   "why_interesting": "Sound turned into signals and back into sound in less than a second"
+  }
+ ]
+}

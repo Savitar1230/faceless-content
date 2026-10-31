@@ -54,7 +54,7 @@ def drop_owner(person):
 
 
 def forget(job):
-    team.sql("DELETE FROM queue WHERE job=? AND state='queued'", job)
+    team.sql("DELETE FROM queue WHERE job=? AND state != 'running'", job)  # a deleted video must not stay in the Dashboard counts
     team.sql("DELETE FROM paused WHERE job=?", job)
 
 

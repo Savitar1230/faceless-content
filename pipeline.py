@@ -28,6 +28,7 @@ ACCOUNTS = ROOT / "data" / "accounts.json"  # the old name list, read once by bo
 SR, BLOCK, LEAD = 24000, 10.0, 0.15
 WINDOW = (7.8, 9.5)  # seconds of speech per 10 s block; a miss is rewritten, audio is never stretched
 TARGET = 8.6
+VOICE = dict(plugin="kokoro_voice", voice="af_heart", speed=0.8)
 registry.load()
 
 
@@ -330,12 +331,18 @@ Copy this exact shape:
 """
 
 
-def write_spec(slug, topic, facts, sources, fmt, ratios, writer="ollama_writer", voice_cfg=None):
+PAGE_RULES = """This video is for a page with one narrator: {identity}. Keep this one person's voice, in everyday human words, with a natural documentary explainer flow.
+Picture style: editorial motion graphics, cutout illustrations, colour diagrams, labels, documentary pacing, natural and engaging, never disturbing.
+"""
+
+
+def write_spec(slug, topic, facts, sources, fmt, ratios, writer="ollama_writer", voice_cfg=None, identity=""):
     """Writes a spec with the chosen writer and keeps fixing what the script check rejects, 2 fixes at most."""
     bank = "\n\n".join(p.read_text(encoding="utf-8") for p in sorted((ROOT / "style_bank").glob("*.txt"))[:3])
     blocks = gate.LONG_MIN_BLOCKS if fmt == "long" else 4
-    prompt = f"{RULES}\nExamples of the voice we want:\n{bank}\n\nTopic: {topic}\nFacts:\n{facts}\nWrite {blocks} blocks. Format: {fmt}."
-    base = dict(slug=slug, format=fmt, ratios=ratios, style="news", voice=voice_cfg or dict(plugin="kokoro_voice", voice="af_heart", speed=0.8),
+    page = PAGE_RULES.format(identity=identity) if identity else ""
+    prompt = f"{RULES}\n{page}Examples of the voice we want:\n{bank}\n\nTopic: {topic}\nFacts:\n{facts}\nWrite {blocks} blocks. Format: {fmt}."
+    base = dict(slug=slug, format=fmt, ratios=ratios, style="news", voice=voice_cfg or VOICE, identity=identity,
                 facts=facts, sources=sources, writer=writer, approved=False)
     problems = []
     for attempt in range(1, 4):

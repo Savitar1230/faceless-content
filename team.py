@@ -31,6 +31,10 @@ CREATE TABLE IF NOT EXISTS spend (id INTEGER PRIMARY KEY, account INTEGER NOT NU
                                   credits REAL NOT NULL, at REAL NOT NULL, UNIQUE (job, card));
 CREATE TABLE IF NOT EXISTS audit (id INTEGER PRIMARY KEY, at REAL NOT NULL, who TEXT NOT NULL, action TEXT NOT NULL, job TEXT, account TEXT, credits REAL);
 CREATE TABLE IF NOT EXISTS settings (name TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS pages (id INTEGER PRIMARY KEY, person INTEGER NOT NULL REFERENCES people(id), name TEXT NOT NULL,
+                                  identity TEXT NOT NULL DEFAULT '', voice TEXT NOT NULL DEFAULT '', locked INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS topics (id TEXT PRIMARY KEY, category TEXT NOT NULL, topic TEXT NOT NULL, why TEXT NOT NULL DEFAULT '', plain TEXT NOT NULL UNIQUE,
+                                   job TEXT, page INTEGER REFERENCES pages(id), used_at REAL);
 """
 
 

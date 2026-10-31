@@ -31,6 +31,7 @@ table { width:100%; border-collapse:collapse; } th, td { text-align:left; paddin
 <header><b>Rumi Longform</b><nav>
   <button data-tab="videos" class="on">Videos</button>
   <button data-tab="new">New video</button>
+  <button data-tab="pages">Pages</button>
   <button data-tab="cards" id="cardsTab">Cards</button>
   <button data-tab="dashboard" hidden>Dashboard</button>
   <button data-tab="plugins" hidden>Plugins &amp; accounts</button>
@@ -48,6 +49,8 @@ table { width:100%; border-collapse:collapse; } th, td { text-align:left; paddin
         <button class="alt" id="saveTemplate" style="align-self:flex-end">Save template</button>
         <button class="alt" id="delTemplate" style="align-self:flex-end">Delete template</button>
       </div>
+      <label for="page">Page</label><select id="page"></select>
+      <div id="picks"></div>
       <label for="topic">Topic</label><input id="topic" placeholder="Why tractors let air out of their tyres">
       <label for="facts">Facts (the script may only use these)</label><textarea id="facts"></textarea>
       <label for="sources">Source links, one per line</label><textarea id="sources" style="min-height:60px"></textarea>
@@ -68,6 +71,7 @@ table { width:100%; border-collapse:collapse; } th, td { text-align:left; paddin
       <p><button class="go" id="createMany">Write all the scripts</button></p>
     </div>
   </section>
+  <section id="pages" hidden></section>
   <section id="cards" hidden></section>
   <section id="dashboard" hidden></section>
   <section id="plugins" hidden></section>
@@ -77,7 +81,7 @@ table { width:100%; border-collapse:collapse; } th, td { text-align:left; paddin
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const api = (url, body) => fetch(url, body === undefined ? {} : {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)}).then((r) => { if (r.status === 401) location = "/login"; return r.json(); });
-let editing = null, lastVideos = "", lastCards = "", plugins = [], me = {}, newKey = "", templates = [];
+let editing = null, lastVideos = "", lastCards = "", plugins = [], me = {}, newKey = "", templates = [], shown = [];
 const say = (msg) => { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(say.t); say.t = setTimeout(() => t.hidden = true, 5000); };
 const siteOf = (name) => (plugins.find((p) => p.name === name) || {}).site;
 
@@ -283,8 +287,9 @@ $("#create").onclick = async () => {
   const topic = $("#topic").value.trim(), facts = $("#facts").value.trim();
   if (!topic || !facts) { say("Add a topic and the facts first."); return; }
   if (!document.querySelector(".ratio:checked")) { say("Tick at least one size."); return; }
-  const r = await api("/api/videos", {topic, facts, sources: $("#sources").value.split("\n").map((s) => s.trim()).filter(Boolean), ...settings()});
+  const r = await api("/api/videos", {topic, facts, page: $("#page").value, sources: $("#sources").value.split("\n").map((s) => s.trim()).filter(Boolean), ...settings()});
   if (r.error) { say(r.error); return; }
+  $("#topic").value = ""; suggestTopics();  // that topic is used now
   document.querySelector('nav button[data-tab="videos"]').click();
 };
 const settings = () => ({format: $("#format").value, writer: $("#writer").value, ratios: [...document.querySelectorAll(".ratio:checked")].map((c) => c.value)});
@@ -297,6 +302,60 @@ $("#createMany").onclick = async () => {
   say(`${r.slugs.length} videos are in the queue.`);
   document.querySelector('nav button[data-tab="videos"]').click();
 };
+
+async function suggestTopics(more) {
+  if (!more) shown = [];
+  if (!$("#page").value) { $("#picks").innerHTML = ""; return; }
+  const list = await api(`/api/pages/${$("#page").value}/suggest?skip=${shown.join(",")}`);
+  shown = list.length ? shown.concat(list.map((t) => t.id)) : [];  // after the last one, Suggest more starts over
+  $("#picks").innerHTML = `<div style="margin-top:8px">` + (list.length ? list.map((t) => `<div class="row" style="margin-bottom:8px"><div class="grow"><b>${esc(t.topic)}</b><br><small>${esc(t.category)}: ${esc(t.why)}</small></div>
+    <button class="alt" onclick="pickTopic(${esc(JSON.stringify(t.topic))})">Pick</button></div>`).join("") : `<p>No more topics for this page right now.</p>`) +
+    `<button class="alt" onclick="suggestTopics(true)">Suggest more</button></div>`;
+}
+$("#page").onchange = () => suggestTopics();
+function pickTopic(topic) {
+  $("#topic").value = topic; $("#format").value = "long";
+  document.querySelectorAll(".ratio").forEach((c) => c.checked = c.value === "16x9");
+  say("Topic picked. Add the facts, then press Write the script.");
+}
+
+function pageHtml(x, voices) {
+  const admin = me.role === "admin", off = x.locked ? "disabled" : "";
+  return `<div class="card"><div class="row">
+    <div class="grow"><label for="pn-${x.id}">Page${admin ? ` <small>${esc(x.owner)}</small>` : ""}</label><input id="pn-${x.id}" value="${esc(x.name)}" ${admin ? "" : "disabled"}></div>
+    <div class="grow"><label for="pi-${x.id}">Identity</label><input id="pi-${x.id}" value="${esc(x.identity)}" placeholder="One single person" ${off}></div>
+    <div class="grow"><label for="pv-${x.id}">Voice</label><select id="pv-${x.id}" ${off}><option value="">Choose</option>${voices.map((v) => `<option ${v === x.voice ? "selected" : ""}>${v}</option>`).join("")}</select></div></div>
+    <div class="row" style="margin-top:8px"><small class="grow">${x.locked ? "Locked. " : ""}${x.used} topics used</small>
+    ${x.locked && !admin ? "" : `<button class="alt" onclick="savePage(${x.id},{})">Save</button>`}
+    ${x.locked ? (admin ? `<button class="alt" onclick="savePage(${x.id},{locked:false})">Unlock</button>` : "") : `<button class="go" onclick="savePage(${x.id},{locked:true})">Lock identity</button>`}</div></div>`;
+}
+async function loadPages() {
+  const keep = $("#page").value;
+  const [d, people] = await Promise.all([api("/api/pages"), me.role === "admin" ? api("/api/team") : []]);
+  $("#page").innerHTML = `<option value="">No page</option>` + d.pages.filter((x) => x.locked).map((x) => `<option value="${x.id}">${esc(x.name)}${me.role === "teammate" ? "" : ` (${esc(x.owner)})`}</option>`).join("");
+  $("#page").value = d.pages.some((x) => x.locked && String(x.id) === keep) ? keep : "";
+  if ($("#page").value !== keep) suggestTopics();
+  $("#pages").innerHTML = `<div class="card mute">Each page has one identity and one voice, used for every video on that page. Choose them, then lock them. Only the admin can unlock. ${d.unused} unused topics left.</div>` +
+    (d.pages.length ? d.pages.map((x) => pageHtml(x, d.voices)).join("") : `<div class="card">No pages yet. The admin adds them here.</div>`) +
+    (me.role === "admin" ? `<div class="card"><div class="row"><input class="grow" id="p-name" placeholder="Page name" aria-label="Page name">
+      <select class="grow" id="p-person" aria-label="Whose page">${people.filter((x) => x.role !== "assistant").map((x) => `<option value="${x.id}">${esc(x.name)}</option>`).join("")}</select>
+      <button class="go" onclick="addPage()">Add page</button></div></div>
+      <div class="card"><label for="p-topics">New topics, one per line: category | topic | why it is interesting</label><textarea id="p-topics"></textarea>
+      <p><button class="go" onclick="addTopics()">Add topics</button></p></div>` : "");
+}
+async function savePage(id, body) {
+  const v = (name) => $(`#p${name}-${id}`).value;
+  const r = await api(`/api/pages/${id}`, {identity: v("i"), voice: v("v"), ...(me.role === "admin" ? {name: v("n")} : {}), ...body});
+  say(r.error || "Saved."); loadPages();
+}
+async function addPage() {
+  const r = await api("/api/pages", {name: $("#p-name").value, person: +$("#p-person").value});
+  say(r.error || "Page added."); loadPages();
+}
+async function addTopics() {
+  const r = await api("/api/topics", {rows: $("#p-topics").value});
+  say(r.error || `${r.added} added, ${r.skipped} skipped.`); loadPages();
+}
 
 async function loadTemplates() {
   const keep = $("#template").value;
@@ -327,7 +386,7 @@ async function loadAll() {
   me = await api("/api/me");
   $("#me").textContent = me.name;
   document.querySelectorAll('[data-tab="plugins"], [data-tab="team"], [data-tab="dashboard"]').forEach((b) => b.hidden = me.role !== "admin");
-  await loadPlugins(); loadTemplates(); loadVideos(); loadTeam(); loadCards(); loadDashboard();
+  await loadPlugins(); loadTemplates(); loadPages(); loadVideos(); loadTeam(); loadCards(); loadDashboard();
 }
 loadAll();
 setInterval(() => { loadVideos(); loadCards(); }, 4000);

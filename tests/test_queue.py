@@ -116,7 +116,7 @@ def test_batch():
     assert admin.post("/api/batch", json={"rows": "t | f\n" * (web.MAX_BATCH + 1)}).status_code == 400
     assert b.post("/api/batch", json={"rows": "t | f | | Admin"}).status_code == 400, "only the admin sets owners"
 
-    rows = "Same topic | fact one | https://a.example https://b.example\n\nSame topic | fact two | | bilal"
+    rows = "First topic | fact one | https://a.example https://b.example\n\nSecond topic | fact two | | bilal"
     slugs = admin.post("/api/batch", json={"rows": rows, "facts": "Shared fact.", "format": "long", "ratios": ["16x9"]}).json["slugs"]
     assert len(set(slugs)) == 2 and states() == ["queued", "queued"]
     args = work.write_args(slugs[0])

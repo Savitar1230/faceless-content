@@ -31,7 +31,7 @@ def rejected(key):
     return r.status_code == 200 and SECRET_WORDS in r.text
 
 
-def video(client, topic="Same topic"):
+def video(client, topic):
     r = client.post("/api/videos", json={"topic": topic, "facts": "x"})
     assert r.status_code == 200, r.text
     return r.json["slug"]
@@ -92,8 +92,7 @@ def test_lockout():
 def test_owners(admin):
     a = signed_in(admin.post("/api/team", json={"name": "A", "flow": True}).json["key"])
     b = signed_in(admin.post("/api/team", json={"name": "B"}).json["key"])
-    one, two = video(a), video(b)
-    assert one != two, "the same topic must not overwrite someone's video"
+    one, two = video(a, "First topic"), video(b, "Second topic")
     assert [v["slug"] for v in a.get("/api/videos").json] == [one]
     assert b.get(f"/api/videos/{one}/spec").status_code == 404
     assert b.post(f"/api/videos/{one}/run", json={}).status_code == 404

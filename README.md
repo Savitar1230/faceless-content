@@ -33,6 +33,18 @@ Statuses are queued, running, waiting (for a person), done and failed. Each vide
 
 **New video** also has templates, which save the format, writer, sizes and facts for the whole team, and a box for many videos: one per line as `topic | facts | source links | owner`. If any line is bad, nothing is queued. A person still approves each script, or presses **Approve all ready**.
 
+## Pages and topics
+
+A person can manage up to 10 pages. The admin adds and names them under **Pages**. The page's person chooses one identity, different from their other pages, and a voice, then presses **Lock identity**. Only the admin can unlock. Every video on that page uses that identity and voice, and **Edit script** cannot change them.
+
+Under **New video**, pick a page and Rumi suggests 3 unused topics from different categories, never the category that page used last. **Suggest more** shows others. Pick one, add the facts, and press **Write the script**. A picked topic sets Long and 16:9, which you can change.
+
+A topic can be used once in the whole app. It is marked used the moment the video is created, so two people cannot take it. Typed topics and batch lines are checked too. Deleting a video gives the topic back only if no voice, picture or output was made from it.
+
+`topics.json` starts the bank, then the database is the truth. Under 10 unused topics, the Dashboard says so. The admin adds new ones under **Pages** as `category | topic | why it is interesting`, and the assistant can post the same lines to `/api/topics`. A topic with the same wording as an old one is skipped.
+
+Only voices timed to fit a 10 s block are offered. To add one, time it first, then add it to `VOICES` in `pages.py`.
+
 ## How a video is made
 
 1. **New video:** give a topic and facts. The writer plugin drafts the script and storyboard.
@@ -55,8 +67,8 @@ The Dashboard also has the audit log, the keep rule for finished videos, and the
 
 ## Files
 
-`app.py` the app · `team.py` people and keys · `work.py` the queue · `books.py` accounts, credits and the audit log · `pipeline.py` the stages · `spec.py` script check · `scenes.py` layouts for 3 sizes ·
+`app.py` the app · `team.py` people and keys · `work.py` the queue · `books.py` accounts, credits and the audit log · `pages.py` pages and topics · `topics.json` the first topics · `pipeline.py` the stages · `spec.py` script check · `scenes.py` layouts for 3 sizes ·
 `checks.py` clip and final checks · `plugins/` one folder per tool · `examples/calf.json` a full example ·
 `spike/` the faster skia engine, kept as a backup for slow PCs.
 
-Tests: run `tests/test_tool.py`, `tests/test_team.py`, `tests/test_queue.py` and `tests/test_books.py` with `.venv/Scripts/python.exe`
+Tests: run `tests/test_tool.py`, `tests/test_team.py`, `tests/test_queue.py`, `tests/test_books.py` and `tests/test_pages.py` with `.venv/Scripts/python.exe`

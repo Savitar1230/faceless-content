@@ -12,6 +12,7 @@ from flask import Flask, g, jsonify, redirect, render_template, request, send_fi
 from werkzeug.utils import secure_filename
 
 import books
+import pages
 import pipeline as p
 import spec as gate
 import team
@@ -53,6 +54,13 @@ def card_path(slug, cid): return job_dir(slug) / "cards" / f"{secure_filename(ci
 
 
 def my_card(slug, cid): return p.read(card_path(slug, cid), {}).get("person") == g.me["id"]
+
+
+def can_use(x): return x and (g.me["role"] != "teammate" or x["person"] == g.me["id"])
+
+
+@app.errorhandler(pages.Taken)
+def topic_taken(e): return jsonify(error=str(e)), 409
 
 
 @app.before_request
@@ -235,6 +243,7 @@ def dashboard():
                      for a in r["accounts"] if a["left"] <= 0]
     no_account = sum(1 for c in cards_open if not c.get("account_id"))
     if no_account: r["warnings"].append(f"{no_account} cards have no account. Add one under Plugins & accounts, then press Run again.")
+    if pages.unused() < pages.LOW_TOPICS: r["warnings"].append(f"Only {pages.unused()} unused topics left. Add new ones under Pages.")
     r["cards_open"], r["cards_held"] = len(cards_open), sum(c["held"] for c in cards_open)
     r["failed"] = [dict(slug=f.parent.name, title=video_title(f.parent.name), message=st.get("message", ""))
                    for f in p.VIDEOS.glob("*/status.json") if (st := p.read(f, {})).get("state") == "failed"]
@@ -284,13 +293,16 @@ def video_problem(topic, facts, fmt, writer):
     if writer == "claude_writer" and g.me["role"] != "admin": return "Only the admin can use the Claude writer."  # it runs on the admin's own Claude plan
 
 
-def add_video(owner, topic, facts, sources, fmt, ratios, writer):
+def add_video(owner, topic, facts, sources, fmt, ratios, writer, page=None):
     slug = re.sub(r"[^a-z0-9]+", "-", topic.lower()).strip("-")[:40].strip("-")
-    slug = f"{slug or 'video'}-{secrets.token_hex(2)}"  # two people can pick the same topic
+    slug = f"{slug or 'video'}-{secrets.token_hex(2)}"
+    pages.claim(topic, slug, page and page["id"])  # before anything else, so a used topic stops here
     team.new_job(slug, owner)
     p.write(job_dir(slug) / "spec.json", dict(slug=slug, title=topic, format=fmt, blocks=[]))
     p.set_status(job_dir(slug), state="queued", stage="in the queue", message="")
-    work.add(slug, "write", dict(topic=topic, facts=facts, sources=sources, fmt=fmt, ratios=ratios, writer=writer))
+    args = dict(topic=topic, facts=facts, sources=sources, fmt=fmt, ratios=ratios, writer=writer)
+    if page: args.update(identity=page["identity"], voice_cfg=dict(p.VOICE, voice=page["voice"]))
+    work.add(slug, "write", args)
     books.log(g.me["name"], "created a video", slug)
     return slug
 
@@ -301,18 +313,23 @@ def new_video():
     topic, facts, fmt, writer = b.get("topic", "").strip(), b.get("facts", "").strip(), b.get("format", "short"), b.get("writer", "ollama_writer")
     problem = video_problem(topic, facts, fmt, writer)
     if problem: return jsonify(error=problem), 400
-    return jsonify(slug=add_video(g.me["id"], topic, facts, b.get("sources", []), fmt, b.get("ratios", ["9x16"]), writer))
+    page = pages.page(b["page"]) if b.get("page") else None
+    if b.get("page") and not can_use(page): return jsonify(error="Not found."), 404
+    if page and not page["locked"]: return jsonify(error="Lock this page's identity first, under Pages."), 400
+    return jsonify(slug=add_video(page["person"] if page else g.me["id"], topic, facts, b.get("sources", []), fmt, b.get("ratios", ["9x16"]), writer, page))
 
 
 def batch_rows(text, base, fmt, writer):
     """Reads topic | facts | sources | owner, one video a line. Returns the rows, and a problem for each bad line."""
-    rows, bad = [], []
+    rows, bad, seen = [], [], set()
     people = [x for x in team.people() if x["role"] != "assistant"]
     for n, line in enumerate(text.splitlines(), 1):
         if not line.strip(): continue
         topic, facts, sources, owner = ([c.strip() for c in line.split("|")] + ["", "", ""])[:4]
         facts = f"{base}\n{facts}".strip()
         problem, who = video_problem(topic, facts, fmt, writer), g.me["id"]
+        if topic and (pages.used(topic) or pages.plain(topic) in seen): problem = "that topic has been used already"
+        seen.add(pages.plain(topic))
         if owner and g.me["role"] != "admin": problem = "only the admin can set an owner"
         elif owner:
             match = [x["id"] for x in people if x["name"].lower() == owner.lower()]
@@ -333,6 +350,45 @@ def batch():
     if len(rows) > MAX_BATCH: bad.append(f"A batch can hold {MAX_BATCH} videos, this has {len(rows)}.")
     if bad: return jsonify(error="\n".join(bad)), 400
     return jsonify(slugs=[add_video(fmt=fmt, ratios=b.get("ratios", ["9x16"]), writer=writer, **r) for r in rows])
+
+
+@app.route("/api/pages", methods=["GET", "POST"])
+def page_list():
+    if request.method == "GET":
+        return jsonify(pages=pages.listing(g.me["id"] if g.me["role"] == "teammate" else None), voices=pages.VOICES, unused=pages.unused())
+    if g.me["role"] != "admin": return jsonify(error="Only the admin can do that."), 403
+    b = request.json
+    problem = pages.add(int(b.get("person") or g.me["id"]), b.get("name", "").strip())
+    if problem: return jsonify(error=problem), 400
+    books.log(g.me["name"], f"added page {b['name'].strip()}")
+    return jsonify(ok=True)
+
+
+@app.route("/api/pages/<int:pid>", methods=["POST"])
+def save_page(pid):
+    """The admin names a page. Its person chooses the identity and voice, then locks them. Only the admin can unlock."""
+    x, b, admin = pages.page(pid), request.json, g.me["role"] == "admin"
+    if not can_use(x) or g.me["role"] == "assistant": return jsonify(error="Not found."), 404
+    if not admin and ("name" in b or b.get("locked") is False): return jsonify(error="Only the admin can do that."), 403
+    problem = pages.save(x, b)
+    if problem: return jsonify(error=problem), 400
+    books.log(g.me["name"], f"changed page {x['name']}")
+    return jsonify(ok=True)
+
+
+@app.route("/api/pages/<int:pid>/suggest")
+def suggest_topics(pid):
+    if not can_use(pages.page(pid)): return jsonify(error="Not found."), 404
+    return jsonify(pages.suggest(pid, request.args.get("skip", "").split(",")))
+
+
+@app.route("/api/topics", methods=["POST"])
+def add_topics():
+    """The admin or the assistant adds to the bank. Teammates only pick from it."""
+    if g.me["role"] == "teammate": return jsonify(error="Only the admin can do that."), 403
+    added, skipped = pages.add_topics(request.json.get("rows", ""))
+    books.log(g.me["name"], f"added {added} topics")
+    return jsonify(added=added, skipped=skipped)
 
 
 @app.route("/api/templates", methods=["GET", "POST"])
@@ -362,6 +418,7 @@ def spec(slug):
         # approval is a person's decision, so a saved file cannot set it, and a changed script needs it again
         same = all(s.get(k) == old.get(k) for k in ("blocks", "pictures", "facts"))
         s.update(slug=slug, approved=bool(old.get("approved")) and same)
+        if old.get("identity"): s.update(identity=old["identity"], voice=old["voice"])  # a page's voice is locked
         p.write(path, s)
     return jsonify(p.read(path))
 
@@ -425,6 +482,7 @@ def pause_video(slug):
 def delete(slug):
     if p.read(job_dir(slug) / "status.json", {}).get("state") == "running":
         return jsonify(error="This video is still working"), 409
+    if not any((job_dir(slug) / d).exists() for d in ("takes", "inbox", "out")): pages.release(slug)  # nothing was made, so the topic goes back
     work.forget(slug)
     shutil.rmtree(job_dir(slug), ignore_errors=True)
     return jsonify(ok=True)
@@ -482,6 +540,7 @@ def resume():
     """Queued work carries on after a restart. What was running does not resume by itself, and says so."""
     p.VIDEOS.mkdir(exist_ok=True)
     books.import_old(p.ACCOUNTS)
+    pages.import_bank()
     work.recover()
     for st in p.VIDEOS.glob("*/status.json"):
         if p.read(st, {}).get("state") in ("running", "queued", "writing") and not work.live(st.parent.name):
