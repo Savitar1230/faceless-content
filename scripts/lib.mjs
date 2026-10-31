@@ -67,9 +67,14 @@ export function hyperframes(args, opts = {}) {
   });
 }
 
-/** Narration with the *emphasis* markers removed, ready for text-to-speech. */
-export function spokenText(narration = '') {
-  return narration.replace(/\*([^*]+)\*/g, '$1').replace(/\s+/g, ' ').trim();
+/** Narration with the *emphasis* markers removed, ready for text-to-speech. `say` respells for the voice only: {"lehr": "leer"}. */
+export function spokenText(narration = '', say = {}) {
+  let text = narration.replace(/\*([^*]+)\*/g, '$1').replace(/\s+/g, ' ').trim();
+  for (const [written, spoken] of Object.entries(say)) {
+    const literal = written.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    text = text.replace(new RegExp(`(?<!\\w)${literal}(?!\\w)`, 'gi'), spoken);
+  }
+  return text;
 }
 
 export const round = (n) => Math.round(n * 1000) / 1000;

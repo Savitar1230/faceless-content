@@ -28,7 +28,8 @@ for (const f of formats) {
   const project = join(buildDir, f);
   if (!existsSync(join(project, 'index.html'))) die(`No build for format ${f}.`);
   console.log(`\n== ${f}: check`);
-  const check = hyperframes(['check', '--json'], { cwd: project, capture: true });
+  // Run from ROOT: check leaves a warm helper for 5 minutes, and on Windows its working folder can't be deleted by a rebuild.
+  const check = hyperframes(['check', relative(ROOT, project), '--json'], { cwd: ROOT, capture: true });
   const report = parseJson(check.stdout);
   const findings = report ? Object.values(report).flatMap((v) => (v && Array.isArray(v.findings) ? v.findings : [])) : [];
   const errors = findings.filter((x) => x.severity === 'error');

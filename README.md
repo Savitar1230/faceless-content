@@ -34,12 +34,13 @@ node scripts/render.mjs <slug>          # checks and renders renders/<slug>_16x9
 
 ## How the 3:4 version avoids cutting anything off
 
-Every image is made once at 16:9, with the subject kept in the middle third. The 3:4 video crops to that centre, re-lays out the captions and titles for the taller frame, and for scenes that must not be cropped it either pans across the full width or shows the whole frame over a blurred copy. Details: `.claude/skills/faceless-video/references/dual-format.md`.
+Every image is made once at 16:9, with the subject kept in the middle third. The 3:4 video crops to that centre, re-lays out the captions and titles for the taller frame, and for scenes that must not be cropped it either pans across the full width or shows the whole frame over a blurred copy. Details: the dual-format rules in `.claude/skills/faceless-video/SKILL.md`.
 
 ## Requirements
 
 - Node.js 22+, FFmpeg and Python 3.10+. HyperFrames downloads its own headless Chrome if needed.
 - The voice engine (`kokoro-onnx`) is installed into `.cache/tts-venv` on first use.
+- Word-timed captions need a free local speech model, once: `npx -y hyperframes@0.8.223 models install parakeet`.
 - `.claude/settings.json` lets Claude run HyperFrames 0.8.223, these scripts and FFmpeg without asking each time.
 
 ## Test the pipeline
@@ -53,8 +54,9 @@ In `renders/_test_3x4.mp4` the yellow square must always be visible, and only th
 ## Layout
 
 ```
-.claude/skills/faceless-video/   the director skill + references (niches, Flow guide, dual-format, video.json)
-scripts/                         make-voice, build-video, render, make-test-images
+.claude/skills/faceless-video/   the one skill file: styles, niches, accuracy, retention, QA, audit, video.json
+scripts/                         make-voice, build-video, render, qa-video, make-test-images
+qa-muse/ANALYSIS.md              frame-by-frame audit of the Muse glass videos
 vendor/gsap.min.js               GSAP 3.15.0 animation library (GreenSock standard no-charge license), bundled so renders work offline
 videos/<slug>/                   one folder per video (media under assets/ and build/ is not committed)
 renders/                         finished MP4s (not committed)

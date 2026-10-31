@@ -34,7 +34,7 @@ let total = 0;
 let worded = 0;
 for (const [i, s] of video.scenes.entries()) {
   const id = String(s.id || `s${String(i + 1).padStart(2, '0')}`);
-  const text = spokenText(s.narration);
+  const text = spokenText(s.narration, video.say);
   if (!text) continue;
   const wav = join(outDir, `${id}.wav`);
   const stamp = join(outDir, `${id}.hash`);
@@ -98,7 +98,10 @@ function transcribeWords(wav) {
   } catch {
     return null;
   } finally {
-    rmSync(tmp, { recursive: true, force: true });
+    // Windows can hold the folder briefly after the child exits; a leftover temp dir must not stop voicing.
+    try {
+      rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+    } catch {}
   }
 }
 

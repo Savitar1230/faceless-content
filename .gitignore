@@ -12,3 +12,4 @@ node_modules/
 # QA reports (regenerate with scripts/qa-video.mjs)
 videos/*/qa/
 qa/
+qa-muse/*/

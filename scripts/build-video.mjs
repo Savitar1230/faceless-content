@@ -327,18 +327,22 @@ function captionChunks(scene, maxWords) {
     });
   }
 
+  // Close a line by time on screen, not word count, so fast speech never flashes past.
+  const readFloor = (n) => (n <= 2 ? 0.4 : 0.75 * (0.5 + 0.3 * n)); // HyperFrames line_unread floor
   const chunks = [];
   let cur = [];
   for (const w of timed) {
     cur.push(w);
+    const n = cur.length;
+    const shown = w.end - cur[0].start;
     const pause = /[.!?;:,]$/.test(w.text);
-    if (cur.length >= maxWords || (pause && cur.length >= 2)) {
+    if (n >= maxWords + 2 || (n >= maxWords && shown >= Math.max(1.35, readFloor(n))) || (pause && n >= 2 && shown >= Math.max(1.0, readFloor(n)))) {
       chunks.push(cur);
       cur = [];
     }
   }
   if (cur.length) {
-    if (cur.length === 1 && chunks.length && chunks.at(-1).length < maxWords + 1) chunks.at(-1).push(...cur);
+    if (cur.length === 1 && chunks.length && chunks.at(-1).length < maxWords + 2) chunks.at(-1).push(...cur);
     else chunks.push(cur);
   }
   for (let k = 0; k < chunks.length - 1; k++) {
