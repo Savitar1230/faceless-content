@@ -58,6 +58,8 @@ Targets are median ≤2.5 s, longest ≤3.5 s and ≥20 cuts a minute. Audio is 
 
 **Biggest structural finding: these aren't three crops of one video.** Each ratio has different pictures, so each was generated separately. That spends three times the generations and gives three different sets of mistakes. For example, the weighing shot shows a dial scale in 16:9 and red and green spice-like powders in 9:16. The 3:4 version of "Hot Bottle" has fire burning inside the bottle.
 
+Flow's stored prompts confirm it. One Oct 30 prompt opens "NEW vertical 3:4 image, recomposed for 3:4, not cropped" and ends "Only text: 'SAND TO BOTTLE'", which also explains the baked text and the leaked quote marks.
+
 The handoff says 9:16 was declined, so it can be dropped. Generate one 16:9 picture set and lay it out twice, which is what `build-video.mjs` already does.
 
 The 3:4 file is also 33% smaller than the 1080×1440 target on each side, and 1 Mbps is low for this much fine paper texture.

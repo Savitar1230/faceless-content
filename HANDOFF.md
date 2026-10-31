@@ -8,7 +8,8 @@ Read this first. Sections 1 to 9 below are the original brief, and some of it is
 
 - **Where:** on the PC this branch lives in the worktree `C:\Users\Hasna\Documents\faceless-engine`. Keep `Documents\faceless-content` on `engine-spike`, because it holds the Flask app and its data.
 - **Done:** Windows setup and the `_test` video, `qa-muse/ANALYSIS.md`, the open engine fixes, and the single `SKILL.md` (the `references/` folder is gone).
-- **Next:** Flow UI notes in `flow-ui-notes.md` at the repo root. It needs the user to sign in, in the built-in browser. Flow now lives at `https://flow.google.com`. Then the first real pilot: How It's Made, about 4 minutes.
+- **Flow:** `flow-ui-notes.md` at the repo root has the UI map, from menus only, with nothing generated yet. It lists what one real generation must confirm. The built-in browser is signed in. Flow now lives at `https://flow.google.com`.
+- **Next:** the first real pilot: How It's Made, about 4 minutes. Rebuild glass from `qa-muse/ANALYSIS.md`.
 - **New since the brief:** word-timed captions need Parakeet (`npx -y hyperframes@0.8.223 models install parakeet`), because HyperFrames has no Whisper runtime here. `video.json` has a `say` map for voice-only respelling.
 - **Windows trap:** HyperFrames helpers can keep running after a command returns. `hyperframes check` keeps one alive for 5 minutes, so never give it a `cwd` inside a folder that gets deleted.
 

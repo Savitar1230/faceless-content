@@ -224,7 +224,7 @@ Show a stage, not a subject: "molten glass gob dropping into a mould", not "glas
 
 A 3:4 crop of a 16:9 frame keeps the **middle 42%** of the width: x = 555–1365 px at 1920 wide, 740–1820 px at 2560 wide. Camera moves zoom up to 14%, so the always-visible zone is about the middle third.
 
-1. Set Flow to 16:9 at the largest size allowed.
+1. Set Flow to 16:9, and download at **2K**. The 1K original is too small for a sharp 3:4 crop.
 2. End every prompt with this **dual-format suffix**, word for word:
 
    > Wide 16:9 composition. The main subject is centered and every important detail sits inside the middle third of the frame; the left and right thirds contain only continuous background (environment, texture, soft out-of-focus surroundings). No text, letters, numbers, logos, watermarks or borders.
@@ -493,18 +493,20 @@ Be exact, and don't overstate. Mark anything inferred as inferred.
 
 ## Google Flow
 
-Flow is at **https://flow.google.com** (the old `labs.google/fx/tools/flow` link redirects). The UI changes often and differs by plan, so check `flow-ui-notes.md` in the repo first. If it's missing or stale, explore before generating, and write down:
+Flow is at **https://flow.google.com** (the old `labs.google/fx/tools/flow` link redirects). The UI changes often and differs by plan, so check `flow-ui-notes.md` in the repo first. It holds the click paths and what's still unverified. If it's missing or stale, explore before generating, and write down:
 
 - How to create a project and switch to images
 - The model picker: select **Nano Banana 2.1**
-- Aspect ratio (16:9), outputs per prompt (use 2), largest size
+- Aspect ratio (16:9) and outputs per prompt (use 2)
 - Reference images
 - Credit cost per image, balance, and any rate limits
 - How to download, and what size and format arrive
 
+Facts seen so far: size is chosen at download, not at generation. **1K is the original, 2K is upscaled, 4K needs an upgrade on Pro.** The settings menu shows the credit cost before you generate, so read it first. Never put quoted text in a prompt, because the quote marks can end up in the picture.
+
 **Where this can run:** a Claude desktop app session with the built-in browser. The user signs in themselves. Cloud sessions can't reach Flow, so hand over `flow-prompts.md` instead. Never enter passwords, buy credits, change settings, sign out or touch other projects.
 
-**For each shot:** paste the prompt, check model, ratio and size, generate, apply the Reject list, download to `assets/images/<id>.png` (keep JPEGs as `.jpg`), and confirm with `ffprobe` that it's 16:9 and at least 1920 px wide. Report progress and credit balance every 10 images.
+**For each shot:** paste the prompt, check model, ratio and credit cost, generate, apply the Reject list, download at 2K to `assets/images/<id>.png` (keep JPEGs as `.jpg`), and confirm with `ffprobe` that it's 16:9 and at least 1920 px wide. Report progress and credit balance every 10 images.
 
 ### `flow-prompts.md` layout
 
