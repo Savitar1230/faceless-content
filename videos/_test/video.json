@@ -1,0 +1,53 @@
+{
+  "title": "Pipeline test",
+  "voice": "bm_george",
+  "accent": "#FFC94D",
+  "formats": ["16x9", "3x4"],
+  "captions": "karaoke",
+  "scenes": [
+    {
+      "id": "s01",
+      "narration": "This is a pipeline test.",
+      "shots": [
+        { "image": "assets/images/s01.png", "motion": "punch-in" }
+      ]
+    },
+    {
+      "id": "s02",
+      "kicker": "Chapter 1",
+      "title": "Framing",
+      "transition": "flash",
+      "shots": [{ "image": "assets/images/s05.png" }]
+    },
+    {
+      "id": "s03",
+      "narration": "The yellow square must stay visible in *both formats*, and the red edges may only be cropped in three by four.",
+      "label": "Cover mode",
+      "transition": "slide",
+      "shots": [
+        { "image": "assets/images/s02.png", "motion": "parallax" },
+        { "image": "assets/images/s06.png" },
+        { "image": "assets/images/s07.png" }
+      ]
+    },
+    {
+      "id": "s04",
+      "narration": "Here the vertical version sweeps across the whole wide frame.",
+      "transition": "zoom",
+      "riser": true,
+      "shots": [
+        { "image": "assets/images/s03.png", "fit3x4": "pan" },
+        { "image": "assets/images/s08.png" }
+      ]
+    },
+    {
+      "id": "s05",
+      "narration": "And here the full frame sits over a *blurred copy* of itself.",
+      "transition": "dip",
+      "shots": [
+        { "image": "assets/images/s04.png", "fit3x4": "blur" },
+        { "image": "assets/images/s01.png", "motion": "pull-out" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx -y hyperframes@0.8.223:*)",
+      "Bash(npx hyperframes@0.8.223:*)",
+      "Bash(node scripts/make-voice.mjs:*)",
+      "Bash(node scripts/build-video.mjs:*)",
+      "Bash(node scripts/render.mjs:*)",
+      "Bash(ffmpeg:*)",
+      "Bash(ffprobe:*)"
+    ]
+  }
+}

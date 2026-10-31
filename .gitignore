@@ -1,0 +1,15 @@
+# Generated media and builds (large; regenerate with the scripts)
+renders/
+videos/*/assets/
+videos/*/build/
+
+# Local tool state
+.cache/
+node_modules/
+.hyperframes/
+**/.hyperframes/
+
+# QA reports (regenerate with scripts/qa-video.mjs)
+videos/*/qa/
+qa/
+qa-muse/*/
